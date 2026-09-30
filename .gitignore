@@ -1,0 +1,97 @@
+# ==========================================
+# MahaTransit AI - Root .gitignore
+# ==========================================
+
+# Environment variables & secrets
+.env
+.env.*
+!.env.example
+*.env
+
+# Dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+.pnpm-store/
+
+# Build and distribution directories
+dist/
+dist-ssr/
+build/
+out/
+*.local
+
+# Cache and temporary folders
+.cache/
+.parcel-cache/
+.vite/
+.vite-temp/
+*.tsbuildinfo
+.tmp/
+.tmp-*
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+.venv/
+env.bak/
+venv.bak/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Database / uploads / models downloads
+*.sqlite3
+*.db
+uploads/
+
+# IDE & Editor files
+.idea/
+.vscode/
+*.swp
+*.swo
+*.sublime-workspace
+*.sublime-project
+
+# OS specific files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Agent & AI tool caches
+.agents/
+.claude/
+.claude-replay.*
+skills-lock.json

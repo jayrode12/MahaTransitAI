@@ -1,0 +1,25 @@
+fastapi>=0.110.0
+uvicorn[standard]>=0.28.0
+sqlalchemy>=2.0.28
+psycopg2-binary>=2.9.9
+pydantic>=2.6.4
+pydantic-settings>=2.2.1
+python-dotenv>=1.0.1
+python-multipart>=0.0.9
+supabase>=2.3.0
+email-validator>=2.0.0
+
+# Vector Support
+pgvector>=0.2.5
+
+# AI / ML Modules (Speech, Translation, Embeddings, Priority)
+torch>=2.2.0
+openai-whisper>=20231126
+transformers>=4.40.0
+sentencepiece>=0.2.0
+sacremoses>=0.0.53
+sentence-transformers>=2.2.2
+xgboost>=2.0.3
+scikit-learn>=1.4.0
+pandas>=2.2.0
+numpy>=1.26.0

@@ -1,0 +1,10 @@
+{
+  "description": "This web application offers a streamlined user interface for managing complaints, featuring consistent navigation and matching visuals for enhanced user experience.",
+  "robots": {
+    "index": false
+  },
+  "accessibility": {
+    "addBypassLinks": false,
+    "ignoreReducedMotion": false
+  }
+}
