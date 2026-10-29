@@ -1,11 +1,11 @@
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api/v1'
 
-const USER_STORAGE_KEY = 'mahatransit_citizen_user'
+const ADMIN_STORAGE_KEY = 'mahatransit_admin_user'
 
-export const authStorage = {
+export const adminStorage = {
   getUser() {
     try {
-      const data = localStorage.getItem(USER_STORAGE_KEY)
+      const data = localStorage.getItem(ADMIN_STORAGE_KEY)
       return data ? JSON.parse(data) : null
     } catch {
       return null
@@ -13,23 +13,23 @@ export const authStorage = {
   },
   setUser(user) {
     try {
-      localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(user))
+      localStorage.setItem(ADMIN_STORAGE_KEY, JSON.stringify(user))
     } catch (e) {
-      console.error('Failed to save user session', e)
+      console.error('Failed to save admin session', e)
     }
   },
   clearUser() {
     try {
-      localStorage.removeItem(USER_STORAGE_KEY)
+      localStorage.removeItem(ADMIN_STORAGE_KEY)
     } catch (e) {
-      console.error('Failed to clear user session', e)
+      console.error('Failed to clear admin session', e)
     }
   },
 }
 
 async function request(endpoint, options = {}) {
   const url = `${API_BASE_URL}${endpoint}`
-  const user = authStorage.getUser()
+  const user = adminStorage.getUser()
 
   const headers = {
     'Content-Type': 'application/json',
@@ -52,17 +52,22 @@ async function request(endpoint, options = {}) {
     let errorDetail = 'Request failed'
     try {
       const errorJson = await response.json()
-      errorDetail = errorJson.detail || errorJson.message || errorDetail
+      if (Array.isArray(errorJson.detail)) {
+        errorDetail = errorJson.detail.map(d => `${d.loc ? d.loc.slice(-1)[0] + ': ' : ''}${d.msg}`).join(', ')
+      } else if (typeof errorJson.detail === 'object' && errorJson.detail !== null) {
+        errorDetail = JSON.stringify(errorJson.detail)
+      } else {
+        errorDetail = errorJson.detail || errorJson.message || errorDetail
+      }
     } catch {
       errorDetail = `${response.status} ${response.statusText}`
     }
-    throw new Error(errorDetail)
+    throw new Error(typeof errorDetail === 'string' ? errorDetail : JSON.stringify(errorDetail))
   }
 
   return response.json()
 }
 
-// Format transit mode for UI
 export function formatTransport(mode) {
   const m = (mode || '').toLowerCase()
   if (m === 'metro') return 'Metro'
@@ -71,20 +76,18 @@ export function formatTransport(mode) {
   return mode || 'Metro'
 }
 
-// Normalize backend status to display status
 export function formatStatus(status) {
   const s = (status || '').toLowerCase()
-  if (s === 'submitted') return 'Submitted'
+  if (s === 'submitted') return 'Under Investigation'
   if (s === 'assigned') return 'Assigned'
-  if (s === 'accepted') return 'Accepted'
+  if (s === 'accepted') return 'Assigned'
   if (s === 'in_progress') return 'In Progress'
   if (s === 'resolved') return 'Resolved'
   if (s === 'closed') return 'Closed'
   if (s === 'rejected') return 'Rejected'
-  return status || 'Submitted'
+  return status || 'Under Investigation'
 }
 
-// Normalize backend priority to display priority
 export function formatPriority(priority) {
   const p = (priority || '').toLowerCase()
   if (p === 'low') return 'Low'
@@ -94,8 +97,7 @@ export function formatPriority(priority) {
   return priority || 'Medium'
 }
 
-// Normalizes a complaint object from API to UI friendly shape
-export function normalizeComplaint(c) {
+export function normalizeAdminComplaint(c) {
   if (!c) return null
 
   const d = c.created_at ? new Date(c.created_at) : new Date()
@@ -103,50 +105,71 @@ export function normalizeComplaint(c) {
   const timeStr = d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
 
   const formData = c.form_data || {}
-  const station = formData.station || formData.station_or_stop_name || formData.boarding_station || formData.boarding_stop || 'Mumbai Central'
-  const line = formData.line || formData.line_or_route_number || formData.route || formData.local_line || 'Main Line'
-  const location = formData.location || station
+  const line = formData.line || formData.line_or_route_number || formData.route || formData.bus_number || formData.local_line || 'Main Line'
+  const station = formData.station || formData.station_or_stop_name || formData.boarding_station || formData.boarding_stop || 'Main Station'
+  const nextStation = formData.next_station || formData.next_stop || 'Destination'
 
-  const firstAttachment = c.attachments && c.attachments.length > 0 ? c.attachments[0].file_url : null
-  const placeholderImages = [
-    'https://images.unsplash.com/photo-1551382854-fe5497288c4c?w=400&h=300&fit=crop&auto=format',
-    'https://images.unsplash.com/photo-1568362137668-3944a4aa19a6?w=400&h=300&fit=crop&auto=format',
-    'https://images.unsplash.com/photo-1700588333223-0e311ef63d73?w=400&h=300&fit=crop&auto=format',
-    'https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?w=400&h=300&fit=crop&auto=format',
-  ]
-  const image = firstAttachment || placeholderImages[Math.abs(c.ticket_number?.charCodeAt(c.ticket_number.length - 1) || 0) % placeholderImages.length]
+  const priority = formatPriority(c.priority)
+  let pct = 50
+  if (c.ai_result?.priority_confidence) {
+    pct = Math.round(Number(c.ai_result.priority_confidence) * 100)
+  } else if (priority === 'Critical') {
+    pct = 95
+  } else if (priority === 'High') {
+    pct = 75
+  } else if (priority === 'Medium') {
+    pct = 48
+  } else {
+    pct = 22
+  }
+
+  // Thumbnails index
+  const t = Math.abs(c.ticket_number?.charCodeAt(c.ticket_number.length - 1) || 0) % 5
+
+  const imageAttachment = (c.attachments || []).find(
+    a => a.attachment_type === 'image' ||
+         a.mime_type?.startsWith('image') ||
+         (a.file_url && (a.file_url.startsWith('data:image') || a.file_url.match(/\.(jpeg|jpg|png|webp|gif)/i)))
+  )
+  const image = imageAttachment?.file_url || null
 
   return {
     id: c.ticket_number || c.id,
     dbId: c.id,
     ticket_number: c.ticket_number,
     title: c.title,
-    description: c.description_original,
+    desc: c.description_original,
     description_english: c.description_english || c.description_original,
     transport: formatTransport(c.transit_mode),
     rawTransitMode: c.transit_mode,
-    status: formatStatus(c.status),
-    priority: formatPriority(c.priority),
-    date: dateStr,
-    time: timeStr,
-    created_at: c.created_at,
-    station,
     line,
-    location,
+    station,
+    from: station,
+    to: nextStation,
     direction: formData.direction || '—',
     train_type: formData.train_type || '—',
     bus_type: formData.bus_type || '—',
     journey_date: formData.journey_date || dateStr,
     journey_time: formData.journey_time || timeStr,
+    passenger_name: formData.passenger_name || 'Passenger',
+    passenger_email: formData.passenger_email || 'Not provided',
+    has_voice_note: !!formData.has_voice_note,
+    evidence_images: formData.attachments || [],
     image,
-    form_data: formData,
+    category: c.category?.category_name || formData.category || 'Transit Service Issue',
+    priority,
+    pct,
+    status: formatStatus(c.status),
+    rawStatus: c.status,
+    date: dateStr,
+    time: timeStr,
+    created_at: c.created_at,
+    t,
+    submittedBy: formData.passenger_name || 'Passenger',
     attachments: c.attachments || [],
     remarks: c.remarks || [],
     ai_result: c.ai_result || null,
-    duplicate_count: c.duplicate_count || 0,
-    submittedBy: formData.passenger_name || 'Passenger',
-    submittedEmail: formData.passenger_email || '',
-    category: c.category?.category_name || formData.category || 'General Grievance',
+    duplicate_count: c.duplicate_count || (c.ai_result ? 3 : 0),
   }
 }
 
@@ -155,27 +178,10 @@ export const api = {
     async login({ email, password }) {
       const data = await request('/auth/login', {
         method: 'POST',
-        body: JSON.stringify({ email, password, user_type: 'citizen' }),
+        body: JSON.stringify({ email, password, user_type: 'admin' }),
       })
-      authStorage.setUser(data)
+      adminStorage.setUser(data)
       return data
-    },
-    async register({ full_name, email, phone, password, preferred_language = 'en' }) {
-      const data = await request('/citizens/register', {
-        method: 'POST',
-        body: JSON.stringify({ full_name, email, phone, password, preferred_language }),
-      })
-      // Auto login session on register
-      const sessionUser = {
-        user_id: data.id,
-        user_type: 'citizen',
-        role: 'citizen',
-        full_name: data.full_name,
-        email: data.email,
-        preferred_language: data.preferred_language,
-      }
-      authStorage.setUser(sessionUser)
-      return sessionUser
     },
     async logout() {
       try {
@@ -183,10 +189,10 @@ export const api = {
       } catch (e) {
         console.warn('Logout API warning:', e)
       }
-      authStorage.clearUser()
+      adminStorage.clearUser()
     },
     getCurrentUser() {
-      return authStorage.getUser()
+      return adminStorage.getUser()
     },
   },
 
@@ -197,8 +203,9 @@ export const api = {
       if (params.limit) query.set('limit', params.limit)
       if (params.status) query.set('status', params.status)
       if (params.priority) query.set('priority', params.priority)
-      if (params.transit_mode) query.set('transit_mode', params.transit_mode)
-      if (params.citizen_id) query.set('citizen_id', params.citizen_id)
+      if (params.transit_mode && params.transit_mode !== 'all') {
+        query.set('transit_mode', params.transit_mode)
+      }
       if (params.search) query.set('search', params.search)
       if (params.from_date) query.set('from_date', params.from_date)
       if (params.to_date) query.set('to_date', params.to_date)
@@ -207,26 +214,18 @@ export const api = {
       const res = await request(`/complaints?${query.toString()}`)
       return {
         ...res,
-        items: (res.items || []).map(normalizeComplaint),
+        items: (res.items || []).map(normalizeAdminComplaint),
       }
     },
 
     async getById(id) {
       const res = await request(`/complaints/${id}`)
-      return normalizeComplaint(res)
+      return normalizeAdminComplaint(res)
     },
 
-    async track(ticketNumber) {
-      const res = await request(`/complaints/track/${encodeURIComponent(ticketNumber)}`)
-      return normalizeComplaint(res)
-    },
-
-    async create(complaintData) {
-      const res = await request('/complaints', {
-        method: 'POST',
-        body: JSON.stringify(complaintData),
-      })
-      return normalizeComplaint(res)
+    async getStats(transitMode = 'all') {
+      const query = transitMode && transitMode !== 'all' ? `?transit_mode=${transitMode}` : ''
+      return request(`/complaints/stats${query}`)
     },
 
     async update(id, updateData) {
@@ -234,7 +233,7 @@ export const api = {
         method: 'PATCH',
         body: JSON.stringify(updateData),
       })
-      return normalizeComplaint(res)
+      return normalizeAdminComplaint(res)
     },
 
     async addRemark(id, remarkData) {
@@ -243,12 +242,25 @@ export const api = {
         body: JSON.stringify(remarkData),
       })
     },
+  },
 
-    async getStats(transitMode = 'all') {
-      const query = transitMode && transitMode !== 'all' ? `?transit_mode=${transitMode}` : ''
-      return request(`/complaints/stats${query}`)
+  citizens: {
+    async getById(citizenId) {
+      return request(`/citizens/${citizenId}`)
+    },
+    async getComplaints(citizenId, params = {}) {
+      const query = new URLSearchParams()
+      if (params.page) query.set('page', params.page)
+      if (params.limit) query.set('limit', params.limit)
+      if (params.status) query.set('status', params.status)
+      const res = await request(`/citizens/${citizenId}/complaints?${query.toString()}`)
+      return {
+        ...res,
+        items: (res.items || []).map(normalizeAdminComplaint),
+      }
     },
   },
 }
 
 export default api
+

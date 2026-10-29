@@ -283,7 +283,7 @@ class ComplaintService:
 
         total = query.count()
 
-        # Ordering: Priority-first (Critical -> High -> Medium -> Low), then Date (Newest first)
+        # Ordering: Date-wise (Newest first), then Assigned Priority (Critical -> High -> Medium -> Low)
         from sqlalchemy import case
         priority_weight = case(
             (Complaint.priority == "critical", 1),
@@ -300,10 +300,10 @@ class ComplaintService:
             joinedload(Complaint.department),
         )
 
-        if sort_by == "date":
-            query_ordered = query_ordered.order_by(Complaint.created_at.desc())
-        else:
+        if sort_by == "priority_date":
             query_ordered = query_ordered.order_by(priority_weight.asc(), Complaint.created_at.desc())
+        else:
+            query_ordered = query_ordered.order_by(Complaint.created_at.desc(), priority_weight.asc())
 
         complaints = (
             query_ordered

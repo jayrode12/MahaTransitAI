@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { complaints as fallbackComplaints, badgeStyle } from '../data/complaints'
+import { badgeStyle } from '../data/complaints'
 import AppLayout from '../components/AppLayout'
 import api from '../services/api'
 
@@ -19,13 +19,13 @@ const statusTabs = [
 
 const PAGE_SIZE = 6
 
-export default function History({ onNavigate, onViewComplaint, onLogout }) {
+export default function History({ onNavigate, onViewComplaint, onLogout, currentUser }) {
   const [transportFilter, setTransportFilter] = useState('All')
   const [activeTab, setActiveTab] = useState('All')
   const [searchQuery, setSearchQuery] = useState('')
   const [fromDate, setFromDate] = useState('')
   const [toDate, setToDate] = useState('')
-  const [sortBy, setSortBy] = useState('priority_date')
+  const [sortBy, setSortBy] = useState('date_priority')
   const [page, setPage] = useState(1)
   const [complaintList, setComplaintList] = useState([])
   const [loading, setLoading] = useState(true)
@@ -33,20 +33,24 @@ export default function History({ onNavigate, onViewComplaint, onLogout }) {
   async function loadComplaints() {
     setLoading(true)
     try {
-      const res = await api.complaints.list({
+      const citizenId = currentUser?.user_id || currentUser?.id
+      if (!citizenId) {
+        setComplaintList([])
+        setLoading(false)
+        return
+      }
+      const params = {
+        citizen_id: citizenId,
         from_date: fromDate || undefined,
         to_date: toDate || undefined,
         sort_by: sortBy,
         limit: 100,
-      })
-      if (res && res.items && res.items.length > 0) {
-        setComplaintList(res.items)
-      } else {
-        setComplaintList(fallbackComplaints)
       }
+      const res = await api.complaints.list(params)
+      setComplaintList(res?.items || [])
     } catch (e) {
-      console.warn('Could not load complaints from API, using fallback data:', e)
-      setComplaintList(fallbackComplaints)
+      console.warn('Could not load complaints from API:', e)
+      setComplaintList([])
     } finally {
       setLoading(false)
     }
@@ -54,7 +58,8 @@ export default function History({ onNavigate, onViewComplaint, onLogout }) {
 
   useEffect(() => {
     loadComplaints()
-  }, [fromDate, toDate, sortBy])
+  }, [fromDate, toDate, sortBy, currentUser])
+
 
   const priorityOrder = { Critical: 1, High: 2, Medium: 3, Low: 4 }
 
@@ -98,15 +103,23 @@ export default function History({ onNavigate, onViewComplaint, onLogout }) {
     return matchTransport && matchStatus && matchSearch
   })
 
-  // Sort by Priority and Date
+  // Sort: Date wise first (Newest), then Assigned Priority (Critical -> High -> Medium -> Low)
   filtered.sort((a, b) => {
-    if (sortBy === 'priority_date') {
-      const pa = priorityOrder[a.priority] || 5
-      const pb = priorityOrder[b.priority] || 5
-      if (pa !== pb) return pa - pb
-    }
     const da = a.created_at ? new Date(a.created_at).getTime() : 0
     const db = b.created_at ? new Date(b.created_at).getTime() : 0
+    const pa = priorityOrder[a.priority] || 5
+    const pb = priorityOrder[b.priority] || 5
+
+    if (sortBy === 'date_priority' || sortBy === 'date' || !sortBy) {
+      if (db !== da) return db - da
+      return pa - pb
+    } else if (sortBy === 'priority_date') {
+      if (pa !== pb) return pa - pb
+      return db - da
+    } else if (sortBy === 'date_asc') {
+      if (da !== db) return da - db
+      return pa - pb
+    }
     return db - da
   })
 
@@ -224,8 +237,9 @@ export default function History({ onNavigate, onViewComplaint, onLogout }) {
               onChange={(e) => { setSortBy(e.target.value); setPage(1) }}
               style={{ padding: '8px 10px', borderRadius: 8, border: '1px solid #CBD5E1', background: 'white', fontSize: 12.5, color: '#475569', outline: 'none' }}
             >
+              <option value="date_priority">Date Wise, then Assigned Priority</option>
               <option value="priority_date">Priority First, then Date</option>
-              <option value="date">Latest Date First</option>
+              <option value="date_asc">Oldest Date First</option>
             </select>
           </div>
 
@@ -333,14 +347,17 @@ export default function History({ onNavigate, onViewComplaint, onLogout }) {
                 borderBottom: i < paged.length - 1 ? '1px solid #F8FAFF' : 'none',
               }}
             >
-              <img
-                src={c.image}
-                alt="Complaint"
-                style={{ width: 38, height: 38, borderRadius: 8, objectFit: 'cover', background: '#E0E7FF' }}
-                onError={(e) => {
-                  e.target.src = 'https://images.unsplash.com/photo-1551382854-fe5497288c4c?w=400&h=300&fit=crop&auto=format'
-                }}
-              />
+              {c.image ? (
+                <img
+                  src={c.image}
+                  alt="Complaint"
+                  style={{ width: 38, height: 38, borderRadius: 8, objectFit: 'cover', background: '#E0E7FF' }}
+                />
+              ) : (
+                <div style={{ width: 38, height: 38, borderRadius: 8, background: '#EEF2FF', border: '1px solid #C7D2FE', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#4F46E5' }}>
+                  {transportIcons[c.transport] || transportIcons['Metro']}
+                </div>
+              )}
               <div>
                 <div style={{ fontSize: 13, fontWeight: 700, color: '#1E293B', fontFamily: 'monospace' }}>
                   {c.ticket_number || c.id}
@@ -372,7 +389,7 @@ export default function History({ onNavigate, onViewComplaint, onLogout }) {
                 </span>
                 {c.priority && (
                   <div style={{ fontSize: 10.5, fontWeight: 700, color: c.priority === 'Critical' ? '#DC2626' : c.priority === 'High' ? '#D97706' : '#64748B', marginTop: 3 }}>
-                    AI: {c.priority}
+                    {c.priority}
                   </div>
                 )}
               </div>

@@ -1,6 +1,8 @@
 import uuid
+from typing import Optional
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
+
 
 from app.models.citizen import Citizen
 from app.schemas.citizen import CitizenRegister, CitizenProfileResponse, CitizenProfileUpdate
@@ -98,6 +100,13 @@ class CitizenService:
         return CitizenProfileResponse.model_validate(citizen)
 
     @staticmethod
+    def get_by_id(db: Session, citizen_id: uuid.UUID) -> Optional[CitizenProfileResponse]:
+        citizen = db.query(Citizen).filter(Citizen.id == citizen_id).first()
+        if not citizen:
+            return None
+        return CitizenProfileResponse.model_validate(citizen)
+
+    @staticmethod
     def get_profile(citizen: Citizen) -> CitizenProfileResponse:
         return CitizenProfileResponse.model_validate(citizen)
 
@@ -117,3 +126,4 @@ class CitizenService:
         db.commit()
         db.refresh(citizen)
         return CitizenProfileResponse.model_validate(citizen)
+

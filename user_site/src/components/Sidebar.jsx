@@ -61,9 +61,9 @@ export default function Sidebar({ currentPage, onNavigate, onLogout }) {
           </div>
           <div>
             <div style={{ fontFamily: "'Outfit', sans-serif", fontWeight: 700, fontSize: 14, color: '#1E293B', lineHeight: 1.2 }}>
-              MahaTransit AI
+              MahaTransit
             </div>
-            <div style={{ fontSize: 11, color: '#94A3B8', marginTop: 2 }}>Complaint Management</div>
+            <div style={{ fontSize: 10.5, color: '#94A3B8', marginTop: 2 }}>Smart Complaint System</div>
           </div>
         </div>
       </div>

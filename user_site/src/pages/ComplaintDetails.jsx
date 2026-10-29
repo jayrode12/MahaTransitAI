@@ -54,19 +54,13 @@ export default function ComplaintDetails({ complaintId, onNavigate, onLogout, cu
 
   const c = complaint || fallbackComplaints[0]
 
-  // Photo evidence
-  const fallbackPhotos = [
-    'https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?w=600&h=400&fit=crop&auto=format',
-    'https://images.unsplash.com/photo-1551382854-fe5497288c4c?w=600&h=400&fit=crop&auto=format',
-  ]
-  const imageAttachments = (c.attachments || []).filter(a => a.attachment_type === 'image' || a.file_url?.match(/\.(jpeg|jpg|png|webp)/i))
-  const displayPhotos = imageAttachments.length > 0
-    ? imageAttachments.map(a => a.file_url)
-    : (c.image ? [c.image, ...fallbackPhotos.slice(0, 1)] : fallbackPhotos)
+  // Actual received photo/video evidence
+  const imageAttachments = (c.attachments || []).filter(a => a.attachment_type === 'image' || a.attachment_type === 'video' || a.mime_type?.startsWith('image') || a.mime_type?.startsWith('video') || (a.file_url && (a.file_url.startsWith('data:image') || a.file_url.startsWith('data:video') || a.file_url.match(/\.(jpeg|jpg|png|webp|mp4|mov)/i))))
+  const displayPhotos = imageAttachments.map(a => a.file_url || a)
 
-  // Voice Note Audio
-  const audioAttachment = (c.attachments || []).find(a => a.attachment_type === 'audio' || a.file_url?.match(/\.(mp3|wav|ogg|webm|m4a)/i))
-  const audioUrl = audioAttachment?.file_url || 'https://actions.google.com/sounds/v1/transportation/subway_door_chime.ogg'
+  // Actual received voice note audio
+  const audioAttachment = (c.attachments || []).find(a => a.attachment_type === 'audio' || a.mime_type?.startsWith('audio') || (a.file_url && (a.file_url.startsWith('data:audio') || a.file_url.match(/\.(mp3|wav|ogg|webm|m4a)/i))))
+  const audioUrl = audioAttachment?.file_url || null
 
   // Open Edit Modal
   function handleOpenEdit() {
@@ -276,7 +270,7 @@ export default function ComplaintDetails({ complaintId, onNavigate, onLogout, cu
         </Divider>
 
         <Divider>
-          <div style={{ fontSize: 11, color: '#94A3B8', marginBottom: 4 }}>AI Priority Level</div>
+          <div style={{ fontSize: 11, color: '#94A3B8', marginBottom: 4 }}>Priority Level</div>
           <div style={{
             display: 'inline-block', fontSize: 12, fontWeight: 700, padding: '3px 10px', borderRadius: 20,
             background: c.priority === 'Critical' ? '#FEF2F2' : c.priority === 'High' ? '#FFFBEB' : '#F0FDF4',
@@ -321,7 +315,7 @@ export default function ComplaintDetails({ complaintId, onNavigate, onLogout, cu
 
             {c.description_english && c.description_english !== c.description && (
               <div style={{ marginTop: 12 }}>
-                <div style={{ fontSize: 12, fontWeight: 600, color: '#4F46E5', marginBottom: 4 }}>AI Translation (English)</div>
+                <div style={{ fontSize: 12, fontWeight: 600, color: '#4F46E5', marginBottom: 4 }}>Automated Translation (English)</div>
                 <p style={{ fontSize: 13, color: '#475569', fontStyle: 'italic', background: '#EEF2FF', padding: '10px 14px', borderRadius: 8, margin: 0 }}>
                   {c.description_english}
                 </p>
@@ -334,77 +328,99 @@ export default function ComplaintDetails({ complaintId, onNavigate, onLogout, cu
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12.5, fontWeight: 700, color: '#1E293B' }}>
                   <span style={{ fontSize: 16 }}>🎙️</span> Passenger Voice Note Recording
                 </div>
-                <span style={{ fontSize: 11, background: '#DCFCE7', color: '#166534', padding: '2px 8px', borderRadius: 12, fontWeight: 600 }}>
-                  Available to Listen
-                </span>
+                {audioUrl ? (
+                  <span style={{ fontSize: 11, background: '#DCFCE7', color: '#166534', padding: '2px 8px', borderRadius: 12, fontWeight: 600 }}>
+                    Available to Listen
+                  </span>
+                ) : (
+                  <span style={{ fontSize: 11, background: '#F1F5F9', color: '#64748B', padding: '2px 8px', borderRadius: 12, fontWeight: 500 }}>
+                    Not Recorded
+                  </span>
+                )}
               </div>
-              <p style={{ fontSize: 12, color: '#64748B', margin: '0 0 10px 0' }}>
-                Audio grievance captured and analyzed via speech pipeline.
-              </p>
-              <audio
-                controls
-                src={audioUrl}
-                style={{ width: '100%', height: 38, borderRadius: 6, outline: 'none' }}
-              >
-                Your browser does not support audio playback.
-              </audio>
+              {audioUrl ? (
+                <>
+                  <p style={{ fontSize: 12, color: '#64748B', margin: '0 0 10px 0' }}>
+                    Audio grievance captured during submission.
+                  </p>
+                  <audio
+                    controls
+                    src={audioUrl}
+                    style={{ width: '100%', height: 38, borderRadius: 6, outline: 'none' }}
+                  >
+                    Your browser does not support audio playback.
+                  </audio>
+                </>
+              ) : (
+                <p style={{ fontSize: 12.5, color: '#94A3B8', margin: 0, fontStyle: 'italic' }}>
+                  No voice note was recorded with this complaint.
+                </p>
+              )}
             </div>
           </div>
 
           <div>
-            <div style={{ fontSize: 12, fontWeight: 600, color: '#94A3B8', marginBottom: 8 }}>AI Intelligence Insight</div>
+            <div style={{ fontSize: 12, fontWeight: 600, color: '#94A3B8', marginBottom: 8 }}>Automated System Insights</div>
             <div style={{ padding: '14px', borderRadius: 10, background: '#F8FAFC', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', gap: 10 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5 }}>
                 <span style={{ color: '#64748B' }}>Category:</span>
                 <span style={{ fontWeight: 600, color: '#1E293B' }}>{c.category}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5 }}>
-                <span style={{ color: '#64748B' }}>AI Duplicate Match:</span>
+                <span style={{ color: '#64748B' }}>Duplicate Detection:</span>
                 <span style={{ fontWeight: 600, color: c.duplicate_count > 0 ? '#D97706' : '#16A34A' }}>
                   {c.duplicate_count > 0 ? `${c.duplicate_count} Similar Issues Detected` : 'Unique Complaint'}
                 </span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5 }}>
-                <span style={{ color: '#64748B' }}>Priority Model:</span>
-                <span style={{ fontWeight: 600, color: '#4F46E5' }}>XGBoost Classifier + Embeddings</span>
+                <span style={{ color: '#64748B' }}>Priority Assessment:</span>
+                <span style={{ fontWeight: 600, color: '#4F46E5' }}>Automated Multi-factor Scoring</span>
               </div>
             </div>
+
 
             {/* Evidence photos with zoom preview */}
             <div style={{ marginTop: 16 }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-                <span style={{ fontSize: 12, fontWeight: 600, color: '#94A3B8' }}>Uploaded Evidence Photos</span>
-                <span style={{ fontSize: 11, color: '#4F46E5', fontWeight: 600 }}>Click to zoom</span>
+                <span style={{ fontSize: 12, fontWeight: 600, color: '#94A3B8' }}>
+                  Uploaded Evidence Files ({displayPhotos.length})
+                </span>
+                {displayPhotos.length > 0 && (
+                  <span style={{ fontSize: 11, color: '#4F46E5', fontWeight: 600 }}>Click to zoom</span>
+                )}
               </div>
-              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                {displayPhotos.map((img, i) => (
-                  <div
-                    key={i}
-                    onClick={() => setModalImage(img)}
-                    style={{
-                      position: 'relative', width: 90, height: 70, borderRadius: 8,
-                      overflow: 'hidden', cursor: 'pointer', border: '1.5px solid #CBD5E1',
-                    }}
-                    title="Click to view full photo"
-                  >
-                    <img
-                      src={img}
-                      alt={`Evidence ${i + 1}`}
-                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                      onError={(e) => {
-                        e.target.src = 'https://images.unsplash.com/photo-1551382854-fe5497288c4c?w=400&h=300&fit=crop&auto=format'
+              {displayPhotos.length > 0 ? (
+                <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                  {displayPhotos.map((img, i) => (
+                    <div
+                      key={i}
+                      onClick={() => setModalImage(img)}
+                      style={{
+                        position: 'relative', width: 90, height: 70, borderRadius: 8,
+                        overflow: 'hidden', cursor: 'pointer', border: '1.5px solid #CBD5E1',
                       }}
-                    />
-                    <div style={{
-                      position: 'absolute', bottom: 0, left: 0, right: 0,
-                      background: 'rgba(15, 23, 42, 0.75)', color: 'white',
-                      fontSize: 10, textAlign: 'center', padding: '1px 0', fontWeight: 600,
-                    }}>
-                      🔍 View
+                      title="Click to view full media"
+                    >
+                      <img
+                        src={img}
+                        alt={`Evidence ${i + 1}`}
+                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                      />
+                      <div style={{
+                        position: 'absolute', bottom: 0, left: 0, right: 0,
+                        background: 'rgba(15, 23, 42, 0.75)', color: 'white',
+                        fontSize: 10, textAlign: 'center', padding: '1px 0', fontWeight: 600,
+                      }}>
+                        🔍 View
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              ) : (
+                <div style={{ padding: '12px 14px', borderRadius: 8, background: '#F8FAFC', border: '1px solid #E2E8F0', fontSize: 12.5, color: '#94A3B8', fontStyle: 'italic' }}>
+                  No photo/video attachments uploaded with this complaint.
+                </div>
+              )}
             </div>
           </div>
         </div>

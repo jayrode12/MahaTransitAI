@@ -278,19 +278,13 @@ export default function ComplaintDetails({ navigate, params = {}, onLogout, admi
     remarks: [],
   }
 
-  // Representative evidence photos
-  const fallbackPhotos = [
-    'https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?w=600&h=400&fit=crop&auto=format',
-    'https://images.unsplash.com/photo-1551382854-fe5497288c4c?w=600&h=400&fit=crop&auto=format',
-  ]
-  const imageAttachments = (c.attachments || []).filter(a => a.attachment_type === 'image' || a.file_url?.match(/\.(jpeg|jpg|png|webp)/i))
-  const displayPhotos = imageAttachments.length > 0
-    ? imageAttachments.map(a => a.file_url)
-    : (c.evidence_images && c.evidence_images.length > 0 ? c.evidence_images : fallbackPhotos)
+  // Actual received photo/video evidence
+  const imageAttachments = (c.attachments || []).filter(a => a.attachment_type === 'image' || a.attachment_type === 'video' || a.mime_type?.startsWith('image') || a.mime_type?.startsWith('video') || (a.file_url && (a.file_url.startsWith('data:image') || a.file_url.startsWith('data:video') || a.file_url.match(/\.(jpeg|jpg|png|webp|mp4|mov)/i))))
+  const displayPhotos = imageAttachments.map(a => a.file_url || a)
 
-  // Voice note audio
-  const audioAttachment = (c.attachments || []).find(a => a.attachment_type === 'audio' || a.file_url?.match(/\.(mp3|wav|ogg|webm|m4a)/i))
-  const audioUrl = audioAttachment?.file_url || 'https://actions.google.com/sounds/v1/transportation/subway_door_chime.ogg'
+  // Actual received voice note audio
+  const audioAttachment = (c.attachments || []).find(a => a.attachment_type === 'audio' || a.mime_type?.startsWith('audio') || (a.file_url && (a.file_url.startsWith('data:audio') || a.file_url.match(/\.(mp3|wav|ogg|webm|m4a)/i))))
+  const audioUrl = audioAttachment?.file_url || null
 
   return (
     <div style={{ display: 'flex', minHeight: '100vh', background: '#f0f4ff', fontFamily: 'Inter, sans-serif' }}>
@@ -413,7 +407,7 @@ export default function ComplaintDetails({ navigate, params = {}, onLogout, admi
                 {c.description_english && c.description_english !== c.desc && (
                   <div style={{ marginTop: 12 }}>
                     <div style={{ fontSize: 11.5, fontWeight: 600, color: '#4F46E5', marginBottom: 4 }}>
-                      AI Multilingual Translation (English):
+                      Automated Translation (English):
                     </div>
                     <div style={{ background: '#EEF2FF', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: '#475569', fontStyle: 'italic' }}>
                       {c.description_english}
@@ -425,42 +419,47 @@ export default function ComplaintDetails({ navigate, params = {}, onLogout, admi
                 <div style={{ marginTop: 18 }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
                     <span style={{ fontSize: 12.5, fontWeight: 700, color: '#334155' }}>
-                      📸 Photo Evidence Attached ({displayPhotos.length})
+                      📸 Photo & Video Evidence Attached ({displayPhotos.length})
                     </span>
-                    <span style={{ fontSize: 11, color: '#64748B' }}>Click to view full image</span>
+                    {displayPhotos.length > 0 && (
+                      <span style={{ fontSize: 11, color: '#64748B' }}>Click to view full media</span>
+                    )}
                   </div>
-                  <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-                    {displayPhotos.map((photoUrl, idx) => (
-                      <div
-                        key={idx}
-                        onClick={() => setModalImage(photoUrl)}
-                        style={{
-                          position: 'relative', width: 110, height: 80, borderRadius: 8,
-                          overflow: 'hidden', cursor: 'pointer', border: '1.5px solid #CBD5E1',
-                          boxShadow: '0 2px 5px rgba(0,0,0,0.08)', transition: 'transform 0.15s ease',
-                        }}
-                        onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.04)'}
-                        onMouseLeave={e => e.currentTarget.style.transform = 'scale(1.0)'}
-                        title="Click to view full photo"
-                      >
-                        <img
-                          src={photoUrl}
-                          alt={`Evidence ${idx + 1}`}
-                          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                          onError={e => {
-                            e.target.src = 'https://images.unsplash.com/photo-1551382854-fe5497288c4c?w=400&h=300&fit=crop&auto=format'
+                  {displayPhotos.length > 0 ? (
+                    <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+                      {displayPhotos.map((photoUrl, idx) => (
+                        <div
+                          key={idx}
+                          onClick={() => setModalImage(photoUrl)}
+                          style={{
+                            position: 'relative', width: 110, height: 80, borderRadius: 8,
+                            overflow: 'hidden', cursor: 'pointer', border: '1.5px solid #CBD5E1',
+                            boxShadow: '0 2px 5px rgba(0,0,0,0.08)', transition: 'transform 0.15s ease',
                           }}
-                        />
-                        <div style={{
-                          position: 'absolute', bottom: 0, left: 0, right: 0,
-                          background: 'rgba(15, 23, 42, 0.75)', color: 'white',
-                          fontSize: 10, textAlign: 'center', padding: '2px 0', fontWeight: 600,
-                        }}>
-                          🔍 View Photo
+                          onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.04)'}
+                          onMouseLeave={e => e.currentTarget.style.transform = 'scale(1.0)'}
+                          title="Click to view full photo"
+                        >
+                          <img
+                            src={photoUrl}
+                            alt={`Evidence ${idx + 1}`}
+                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                          />
+                          <div style={{
+                            position: 'absolute', bottom: 0, left: 0, right: 0,
+                            background: 'rgba(15, 23, 42, 0.75)', color: 'white',
+                            fontSize: 10, textAlign: 'center', padding: '2px 0', fontWeight: 600,
+                          }}>
+                            🔍 View
+                          </div>
                         </div>
-                      </div>
-                    ))}
-                  </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div style={{ padding: '12px 14px', borderRadius: 8, background: '#F8FAFC', border: '1px solid #E2E8F0', fontSize: 13, color: '#94A3B8', fontStyle: 'italic' }}>
+                      No photo/video attachments provided by passenger.
+                    </div>
+                  )}
                 </div>
 
                 {/* Audio Voice Note Evidence with Built-in Player */}
@@ -469,20 +468,34 @@ export default function ComplaintDetails({ navigate, params = {}, onLogout, admi
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12.5, fontWeight: 700, color: '#1E293B' }}>
                       <span style={{ fontSize: 16 }}>🎙️</span> Passenger Audio Grievance / Voice Note
                     </div>
-                    <span style={{ fontSize: 11, background: '#DCFCE7', color: '#166534', padding: '2px 8px', borderRadius: 12, fontWeight: 600 }}>
-                      Audio Stream Ready
-                    </span>
+                    {audioUrl ? (
+                      <span style={{ fontSize: 11, background: '#DCFCE7', color: '#166534', padding: '2px 8px', borderRadius: 12, fontWeight: 600 }}>
+                        Audio Stream Ready
+                      </span>
+                    ) : (
+                      <span style={{ fontSize: 11, background: '#F1F5F9', color: '#64748B', padding: '2px 8px', borderRadius: 12, fontWeight: 500 }}>
+                        Not Recorded
+                      </span>
+                    )}
                   </div>
-                  <p style={{ fontSize: 12, color: '#64748B', margin: '0 0 10px 0' }}>
-                    Listen to original voice submission recorded by passenger. Analyzed by AI speech-to-text pipeline.
-                  </p>
-                  <audio
-                    controls
-                    src={audioUrl}
-                    style={{ width: '100%', height: 38, borderRadius: 6, outline: 'none' }}
-                  >
-                    Your browser does not support audio playback.
-                  </audio>
+                  {audioUrl ? (
+                    <>
+                      <p style={{ fontSize: 12, color: '#64748B', margin: '0 0 10px 0' }}>
+                        Listen to original voice submission recorded by passenger.
+                      </p>
+                      <audio
+                        controls
+                        src={audioUrl}
+                        style={{ width: '100%', height: 38, borderRadius: 6, outline: 'none' }}
+                      >
+                        Your browser does not support audio playback.
+                      </audio>
+                    </>
+                  ) : (
+                    <p style={{ fontSize: 12.5, color: '#94A3B8', margin: 0, fontStyle: 'italic' }}>
+                      No voice recording was provided by passenger.
+                    </p>
+                  )}
                 </div>
               </div>
 
@@ -511,12 +524,12 @@ export default function ComplaintDetails({ navigate, params = {}, onLogout, admi
               </div>
             </div>
 
-            {/* Right Column: AI Model Metrics & Action Form */}
+            {/* Right Column: Triage Metrics & Action Form */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-              {/* AI Priority Gauge */}
+              {/* Priority Gauge */}
               <div style={{ background: 'white', borderRadius: 14, border: '1px solid #e0e7ff', padding: '22px 24px', boxShadow: '0 1px 8px rgba(0,0,0,0.04)', textAlign: 'center' }}>
                 <h3 style={{ fontSize: 15, fontWeight: 700, color: '#1e1b4b', marginBottom: 10, textAlign: 'left' }}>
-                  AI Model Priority Evaluation
+                  Priority Evaluation & Confidence
                 </h3>
                 <PriorityGauge pct={c.pct} priority={c.priority} />
                 <div style={{ display: 'flex', justifyContent: 'space-around', marginTop: 12, borderTop: '1px solid #f1f5f9', paddingTop: 12 }}>

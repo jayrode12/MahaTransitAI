@@ -11,7 +11,7 @@ const AGENCY_CONFIG = {
   metro: {
     title: 'Mumbai Metro Command Center',
     agency: 'Mumbai Metro One / MMRDA',
-    desc: 'Real-time passenger grievances, automated AI priority queuing, and metro line diagnostics.',
+    desc: 'Real-time passenger grievances, automated priority queuing, and metro line diagnostics.',
     icon: '🚇',
     routes: [
       { name: 'Line 1 (Versova–Ghatkopar)', pct: '42%', color: '#4f46e5' },
@@ -47,7 +47,7 @@ const AGENCY_CONFIG = {
   all: {
     title: 'MahaTransit State Apex Command',
     agency: 'Maharashtra Urban Mobility Unified Authority',
-    desc: 'Unified state-wide passenger grievance triage, cross-agency coordination, and AI analytics.',
+    desc: 'Unified state-wide passenger grievance triage, cross-agency coordination, and smart analytics.',
     icon: '🏛️',
     routes: [
       { name: 'Mumbai Metro (All Lines)', pct: '36%', color: '#4f46e5' },
@@ -110,9 +110,9 @@ export default function Dashboard({ navigate, onLogout, adminUser }) {
               triggers.push({
                 ticket: c.ticket_number || c.id,
                 title: c.title,
-                action: 'AI Model Categorized & Queued',
-                remarks: `Classified as ${c.priority} Priority by Automated AI pipeline.`,
-                officer: 'Automated AI Pipeline',
+                action: 'Automated Triage & Queued',
+                remarks: `Classified as ${c.priority} Priority by automated pipeline.`,
+                officer: 'Automated Pipeline',
                 time: c.date ? `${c.date}, ${c.time}` : 'Recent',
                 status: c.status,
               })
@@ -128,6 +128,7 @@ export default function Dashboard({ navigate, onLogout, adminUser }) {
     }
     loadStatsAndActions()
   }, [modeKey])
+
 
   const pieData = agency.routes.map((r) => ({
     name: r.name,
@@ -252,13 +253,13 @@ export default function Dashboard({ navigate, onLogout, adminUser }) {
               </div>
             </div>
 
-            {/* Bar Chart: AI Priority Classifier */}
+            {/* Bar Chart: Priority Distribution */}
             <div style={{ background: 'white', borderRadius: 14, border: '1px solid #e0e7ff', padding: '22px 24px', boxShadow: '0 1px 8px rgba(0,0,0,0.04)' }}>
               <div style={{ fontWeight: 700, fontSize: 15, color: '#1e1b4b', marginBottom: 4 }}>
-                AI Model Priority Distribution
+                Priority Distribution Analysis
               </div>
               <div style={{ fontSize: 12, color: '#64748b', marginBottom: 16 }}>
-                XGBoost ML classification for active {agency.agency} tickets
+                Automated triage classification for active {agency.agency} tickets
               </div>
 
               <div style={{ height: 220 }}>

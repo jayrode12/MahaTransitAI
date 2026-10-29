@@ -81,10 +81,10 @@ export default function Sidebar({ currentPage, navigate, onLogout, adminUser }) 
           <AppLogo />
           <div>
             <div style={{ fontWeight: 800, fontSize: 15, color: '#1a1a2e', lineHeight: 1.25 }}>
-              MahaTransit AI
+              MahaTransit
             </div>
             <div style={{ fontSize: 11.5, color: '#94a3b8', fontWeight: 500, marginTop: 2 }}>
-              Command & Control
+              Smart Complaint System
             </div>
           </div>
         </div>

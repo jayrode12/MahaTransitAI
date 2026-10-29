@@ -1,7 +1,7 @@
 # 🧠 MahaTransit AI — Permanent Rules, System Architecture & Integration Memory (`brain.md`)
 
-> **IMPORTANT**: This is the permanent memory and rules file for the **MahaTransit AI** project.
-> Read and follow this file completely before planning or starting any task in this codebase.
+> **MANDATORY INSTRUCTION**: This file contains permanent rules, system architecture, and operational memory for the **MahaTransit** project.
+> Read and follow this file completely before planning or starting ANY task in this project.
 
 ---
 
@@ -28,22 +28,21 @@ The frontend and backend of this project are both already built and working sepa
 
 ---
 
-## 2. CODE QUALITY RULES (STRICT)
-
-1. **Only Required Code**: Write solely the code necessary to satisfy the integration task. No bloat, filler, or illogical logic.
-2. **Zero Dead Code**: No unused imports, unused variables, leftover console logs, or commented-out blocks of code.
-3. **No Speculative Code**: Never implement "just in case" features or unnecessary future-proofing layers.
-4. **Consistent Style**: Follow existing casing, formatting, naming conventions, and project idioms.
-5. **Dependency Discipline**: Do not add new external npm or pip dependencies unless strictly required and approved.
+## 2. Code Quality Rules (Strict)
+- **Only What Is Needed**: Write only the code required to solve the task. No extra, unwanted, or illogical code.
+- **Zero Dead Code**: No unused imports, unused variables, leftover debug logs, or commented-out code.
+- **No Speculative Code**: No duplicate logic and no speculative "just in case" features.
+- **Consistent Style**: Follow the existing project style. Do not add new dependencies unless strictly necessary.
 
 ---
 
-## 3. PERFORMANCE RULES
+## 3. Performance Rules
 
 ### General Performance
-- Strive for optimal time and space complexity. For non-trivial operations, document complexity.
-- Eliminate redundant loops, nested lookups, and duplicate data conversions.
-- Minimize disk I/O, database roundtrips, and network requests through targeted querying and sensible caching.
+- All code must be fast, optimized, and efficient.
+- Pick the best algorithm and data structure, and state time and space complexity for non-trivial logic.
+- Avoid unnecessary loops, repeated computation, and redundant network, database, or disk calls.
+- Apply caching, batching, lazy loading, and async processing only where they provide real, measurable benefits.
 
 ### Stack-Specific Performance Rules
 
@@ -123,9 +122,9 @@ The frontend and backend of this project are both already built and working sepa
 
 ---
 
-## 7. PROJECT OVERVIEW
+## 6. Project Overview
 
-### 7.1 Architecture & Directory Structure
+### 6.1 Tech Stack & Directory Structure
 ```
 c:\Users\yvpaw\OneDrive\Desktop\Mahatransit/
 ├── Backend/                     # FastAPI Backend Server (Port: 8000)

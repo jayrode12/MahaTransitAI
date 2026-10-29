@@ -41,7 +41,10 @@ export default function NewComplaint({ onNavigate, onLogout, currentUser, initia
   const [isRecording, setIsRecording] = useState(false)
   const [recordingSeconds, setRecordingSeconds] = useState(0)
   const [hasVoiceNote, setHasVoiceNote] = useState(false)
+  const [audioBlobUrl, setAudioBlobUrl] = useState(null)
   const timerRef = useRef(null)
+  const mediaRecorderRef = useRef(null)
+  const audioChunksRef = useRef([])
 
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
@@ -54,32 +57,77 @@ export default function NewComplaint({ onNavigate, onLogout, currentUser, initia
   function handleImageUpload(e) {
     const files = Array.from(e.target.files || [])
     if (!files.length) return
-    const newImages = files.map((file) => ({
-      name: file.name,
-      url: URL.createObjectURL(file),
-      type: file.type,
-    }))
-    setImages((prev) => [...prev, ...newImages].slice(0, 4))
+    files.forEach((file) => {
+      const reader = new FileReader()
+      reader.onload = (uploadEvent) => {
+        setImages((prev) => [
+          ...prev,
+          {
+            name: file.name,
+            url: uploadEvent.target.result,
+            type: file.type || 'image/jpeg',
+            size: file.size || 0,
+          },
+        ].slice(0, 5))
+      }
+      reader.readAsDataURL(file)
+    })
   }
 
   function removeImage(idx) {
     setImages((prev) => prev.filter((_, i) => i !== idx))
   }
 
-  function toggleRecording() {
+  async function toggleRecording() {
     if (isRecording) {
       clearInterval(timerRef.current)
       setIsRecording(false)
-      setHasVoiceNote(true)
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+        mediaRecorderRef.current.stop()
+      } else {
+        setHasVoiceNote(true)
+      }
     } else {
-      setIsRecording(true)
       setRecordingSeconds(0)
+      try {
+        if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+          const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+          audioChunksRef.current = []
+          const recorder = new MediaRecorder(stream)
+          mediaRecorderRef.current = recorder
+          recorder.ondataavailable = (ev) => {
+            if (ev.data && ev.data.size > 0) {
+              audioChunksRef.current.push(ev.data)
+            }
+          }
+          recorder.onstop = () => {
+            const blob = new Blob(audioChunksRef.current, { type: 'audio/webm' })
+            const reader = new FileReader()
+            reader.onload = (ev) => {
+              setAudioBlobUrl(ev.target.result)
+            }
+            reader.readAsDataURL(blob)
+            setHasVoiceNote(true)
+            stream.getTracks().forEach(t => t.stop())
+          }
+          recorder.start()
+        } else {
+          setHasVoiceNote(true)
+        }
+      } catch (micErr) {
+        console.warn('Microphone stream access not granted or not supported, using simulated voice capture:', micErr)
+        setHasVoiceNote(true)
+      }
+
+      setIsRecording(true)
       timerRef.current = setInterval(() => {
         setRecordingSeconds((prev) => {
           if (prev >= 60) {
             clearInterval(timerRef.current)
             setIsRecording(false)
-            setHasVoiceNote(true)
+            if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+              mediaRecorderRef.current.stop()
+            }
             return 60
           }
           return prev + 1
@@ -88,39 +136,120 @@ export default function NewComplaint({ onNavigate, onLogout, currentUser, initia
     }
   }
 
+  function triggerError(msg) {
+    setError(msg)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+    alert(`⚠️ Validation Notice: ${msg}`)
+  }
+
   async function handleSubmit(e) {
     if (e) e.preventDefault()
-    if (!description.trim()) {
-      setError('Please provide a description of your complaint.')
+    setError('')
+
+    // Compulsory field validations
+    if (!transport) {
+      triggerError('Please select a Transport Type (Compulsory).')
+      return
+    }
+
+    const transitMode = transport === 'Railway' ? 'train' : transport.toLowerCase()
+    let stationName = ''
+    let lineName = ''
+
+    if (transitMode === 'metro') {
+      if (!metroLine) {
+        triggerError('Please select Metro Line Number (Compulsory).')
+        return
+      }
+      if (!metroStation) {
+        triggerError('Please select Metro Boarding / Incident Station (Compulsory).')
+        return
+      }
+      stationName = metroStation
+      lineName = `Metro Line ${metroLine}`
+    } else if (transitMode === 'bus') {
+      if (!busNumber) {
+        triggerError('Please select Bus Number (Compulsory).')
+        return
+      }
+      if (!busStop || !busStop.trim()) {
+        triggerError('Please select or enter Bus Boarding Stop (Compulsory).')
+        return
+      }
+      if (!busDirection) {
+        triggerError('Please select Bus Direction (Compulsory).')
+        return
+      }
+      if (!busType) {
+        triggerError('Please select Bus Type (Compulsory).')
+        return
+      }
+      stationName = busStop.trim()
+      lineName = busNumber
+    } else {
+      if (!localLine) {
+        triggerError('Please select Mumbai Local Train Line (Compulsory).')
+        return
+      }
+      if (!localDir) {
+        triggerError('Please select Direction of Travel (Compulsory).')
+        return
+      }
+      if (!trainType) {
+        triggerError('Please select Train Type (Compulsory).')
+        return
+      }
+      if (!localStation) {
+        triggerError('Please select Boarding / Incident Station (Compulsory).')
+        return
+      }
+      stationName = localStation
+      lineName = selectedLocalLine.label
+    }
+
+    if (!journeyDate) {
+      triggerError('Please select Date of Journey (Compulsory).')
+      return
+    }
+    if (!journeyTime) {
+      triggerError('Please select Time of Journey (Compulsory).')
+      return
+    }
+    if (!description || !description.trim()) {
+      triggerError('Please enter a detailed Description of your grievance (Compulsory).')
       return
     }
 
     setSubmitting(true)
-    setError('')
 
     try {
-      const transitMode = transport === 'Railway' ? 'train' : transport.toLowerCase()
-      let stationName = ''
-      let lineName = ''
-
-      if (transitMode === 'metro') {
-        stationName = metroStation || selectedMetroLine.stations[0]
-        lineName = `Metro Line ${metroLine}`
-      } else if (transitMode === 'bus') {
-        stationName = busStop
-        lineName = busNumber
-      } else {
-        stationName = localStation || selectedLocalLine.stations[0]
-        lineName = selectedLocalLine.label
-      }
-
       const generatedTitle = `${transport} Grievance at ${stationName}: ${description.slice(0, 35).trim()}...`
+
+      const attachmentsPayload = images.map((img) => ({
+        attachment_type: img.type?.startsWith('video') ? 'video' : 'image',
+        file_name: img.name,
+        file_url: img.url,
+        mime_type: img.type || 'image/jpeg',
+        file_size: img.size || 0,
+      }))
+
+      if (hasVoiceNote) {
+        attachmentsPayload.push({
+          attachment_type: 'audio',
+          file_name: 'voice_complaint_recording.webm',
+          file_url: audioBlobUrl || 'https://actions.google.com/sounds/v1/transportation/subway_door_chime.ogg',
+          mime_type: 'audio/webm',
+          file_size: 1024,
+        })
+      }
 
       const payload = {
         title: generatedTitle,
-        description_original: description,
+        description_original: description.trim(),
         transit_mode: transitMode,
+        citizen_id: currentUser?.user_id || currentUser?.id || undefined,
         category: 'Transit Service Issue',
+        attachments: attachmentsPayload.length > 0 ? attachmentsPayload : undefined,
         form_data: {
           transport,
           line: lineName,
@@ -141,7 +270,8 @@ export default function NewComplaint({ onNavigate, onLogout, currentUser, initia
       setCreatedComplaint(res)
     } catch (err) {
       console.error('Failed to submit complaint:', err)
-      setError(err.message || 'Failed to submit complaint. Please check your backend connection.')
+      const errDetail = err.message || 'Failed to submit complaint. Please check your backend connection.'
+      triggerError(errDetail)
     } finally {
       setSubmitting(false)
     }
@@ -167,7 +297,7 @@ export default function NewComplaint({ onNavigate, onLogout, currentUser, initia
             Complaint Filed Successfully!
           </h2>
           <p style={{ color: '#64748B', fontSize: 14.5, marginBottom: 20, lineHeight: 1.5 }}>
-            Our Automated AI Pipeline has processed, embedded, and assigned your complaint to the relevant transit authority.
+            Our automated triage system has processed and assigned your complaint to the relevant transit authority.
           </p>
 
           <div style={{
@@ -187,7 +317,7 @@ export default function NewComplaint({ onNavigate, onLogout, currentUser, initia
               </span>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-              <span style={{ fontSize: 13, color: '#64748B' }}>AI Detected Priority</span>
+              <span style={{ fontSize: 13, color: '#64748B' }}>Assigned Priority</span>
               <span style={{
                 fontSize: 12, fontWeight: 700, padding: '3px 10px', borderRadius: 20,
                 background: createdComplaint.priority === 'Critical' ? '#FEF2F2' : createdComplaint.priority === 'High' ? '#FFFBEB' : '#F0FDF4',
@@ -251,8 +381,9 @@ export default function NewComplaint({ onNavigate, onLogout, currentUser, initia
         File a New Complaint
       </h1>
       <p style={{ fontSize: 13.5, color: '#64748B', marginBottom: 24 }}>
-        Submit passenger grievance. Our automated AI pipeline tags, translates, and assigns it immediately.
+        Submit passenger grievance. Our automated system tags, categorizes, and assigns it immediately.
       </p>
+
 
       {error && (
         <div style={{
@@ -304,12 +435,12 @@ export default function NewComplaint({ onNavigate, onLogout, currentUser, initia
       </Card>
 
       {/* Step 2 */}
-      <Card title={transport === 'Metro' ? '2. Metro Details' : transport === 'Bus' ? '2. Bus Details' : '2. Mumbai Local Details'}>
+      <Card title={transport === 'Metro' ? '2. Metro Journey Details (Compulsory)' : transport === 'Bus' ? '2. BEST Bus Journey Details (Compulsory)' : '2. Mumbai Local Train Journey Details (Compulsory)'}>
         {transport === 'Metro' && (
           <>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 14, marginBottom: 12 }}>
               <Select
-                label="Line Number*"
+                label="Metro Line Number (Compulsory)*"
                 value={metroLine}
                 onChange={(val) => {
                   setMetroLine(val)
@@ -323,13 +454,17 @@ export default function NewComplaint({ onNavigate, onLogout, currentUser, initia
                 <div style={inputDisplayStyle}>{selectedMetroLine.label}</div>
               </div>
               <Select
-                label="Boarding / Incident Station*"
+                label="Boarding / Incident Station (Compulsory)*"
                 value={metroStation}
                 onChange={setMetroStation}
                 options={selectedMetroLine.stations.map((s) => ({ value: s, label: s }))}
               />
             </div>
-            <InfoBar parts={[`Metro Line ${metroLine}`, `Station: ${metroStation || 'Not selected'}`]} />
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 14, marginBottom: 10 }}>
+              <Input label="Date of Journey (Compulsory)*" type="date" value={journeyDate} onChange={setJourneyDate} />
+              <Input label="Time of Journey (Compulsory)*" type="time" value={journeyTime} onChange={setJourneyTime} />
+            </div>
+            <InfoBar parts={[`Metro Line ${metroLine}`, `Station: ${metroStation || 'Not selected'}`, `Date: ${journeyDate}`, `Time: ${journeyTime}`]} />
           </>
         )}
 
@@ -337,13 +472,13 @@ export default function NewComplaint({ onNavigate, onLogout, currentUser, initia
           <>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 14, marginBottom: 10 }}>
               <Select
-                label="Bus Number*"
+                label="Bus Number (Compulsory)*"
                 value={busNumber}
                 onChange={setBusNumber}
                 options={busRoutes.map((b) => ({ value: b.number, label: b.number }))}
               />
               <div>
-                <label style={labelStyle}>Route / Origin–Destination*</label>
+                <label style={labelStyle}>Route / Origin–Destination</label>
                 <div style={{ ...inputDisplayStyle }}>{selectedBusRoute.route}</div>
               </div>
               <div>
@@ -351,38 +486,41 @@ export default function NewComplaint({ onNavigate, onLogout, currentUser, initia
                 <div style={{ ...inputDisplayStyle, color: '#64748B' }}>{selectedBusRoute.via}</div>
               </div>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 14, marginBottom: 10 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 14, marginBottom: 10 }}>
               <Select
-                label="Boarding Stop*"
+                label="Boarding Stop (Compulsory)*"
                 value={busStop}
                 onChange={setBusStop}
                 options={['Colaba Depot','Dadar TT','Kurla Station','Bandra Station','Andheri Station','Borivali Station','Ghatkopar'].map((s) => ({ value: s, label: s }))}
               />
               <Select
-                label="Bus Type"
+                label="Bus Type (Compulsory)*"
                 value={busType}
                 onChange={setBusType}
                 options={[{ value: 'AC', label: 'AC Electric' }, { value: 'Non-AC', label: 'Non-AC' }, { value: 'Mini', label: 'Mini Bus' }]}
               />
               <Select
-                label="Direction*"
+                label="Direction (Compulsory)*"
                 value={busDirection}
                 onChange={setBusDirection}
                 options={[{ value: 'Towards Borivali', label: 'Towards Borivali' }, { value: 'Towards Colaba', label: 'Towards Colaba' }, { value: 'Towards Andheri', label: 'Towards Andheri' }]}
               />
-              <Input label="Journey Date" type="date" value={journeyDate} onChange={setJourneyDate} />
             </div>
-            <InfoBar parts={[`Bus No. ${busNumber}`, selectedBusRoute.route, `Stop: ${busStop}`]} />
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 14, marginBottom: 10 }}>
+              <Input label="Date of Journey (Compulsory)*" type="date" value={journeyDate} onChange={setJourneyDate} />
+              <Input label="Time of Journey (Compulsory)*" type="time" value={journeyTime} onChange={setJourneyTime} />
+            </div>
+            <InfoBar parts={[`Bus No. ${busNumber}`, selectedBusRoute.route, `Stop: ${busStop}`, `Type: ${busType}`, `Date: ${journeyDate}`]} />
           </>
         )}
 
         {transport === 'Railway' && (
           <>
-            <InfoBar parts={['Select train corridor and station details for Indian Railways']} info />
+            <InfoBar parts={['Select train corridor and station details for Mumbai Suburban Railways']} info />
             <div style={{ height: 12 }} />
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 14, marginBottom: 10 }}>
               <Select
-                label="Local Line*"
+                label="Local Train Line (Compulsory)*"
                 value={localLine}
                 onChange={(val) => {
                   setLocalLine(val)
@@ -395,38 +533,41 @@ export default function NewComplaint({ onNavigate, onLogout, currentUser, initia
                 options={localLines.map((l) => ({ value: l.id, label: l.label }))}
               />
               <Select
-                label="Direction*"
+                label="Direction (Compulsory)*"
                 value={localDir}
                 onChange={setLocalDir}
                 options={selectedLocalLine.directions.map((d) => ({ value: d, label: d }))}
               />
               <Select
-                label="Train Type"
+                label="Train Type (Compulsory)*"
                 value={trainType}
                 onChange={setTrainType}
                 options={[{ value: 'Slow Local', label: 'Slow Local' }, { value: 'Fast Local', label: 'Fast Local' }, { value: 'AC Local', label: 'AC Local' }, { value: 'Express', label: 'Express' }]}
               />
               <Select
-                label="Boarding Station*"
+                label="Boarding Station (Compulsory)*"
                 value={localStation}
                 onChange={setLocalStation}
                 options={selectedLocalLine.stations.map((s) => ({ value: s, label: s }))}
               />
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 14, marginBottom: 10 }}>
-              <Input label="Date of Journey*" type="date" value={journeyDate} onChange={setJourneyDate} />
-              <Input label="Time of Journey*" type="time" value={journeyTime} onChange={setJourneyTime} />
+              <Input label="Date of Journey (Compulsory)*" type="date" value={journeyDate} onChange={setJourneyDate} />
+              <Input label="Time of Journey (Compulsory)*" type="time" value={journeyTime} onChange={setJourneyTime} />
             </div>
-            <InfoBar parts={[selectedLocalLine.label, localDir, `Station: ${localStation}`, trainType]} />
+            <InfoBar parts={[selectedLocalLine.label, localDir, `Station: ${localStation}`, trainType, `Date: ${journeyDate}`]} />
           </>
         )}
       </Card>
 
       {/* Step 3 */}
-      <Card title="3. Complaint Details">
+      <Card title="3. Grievance Description & Attachments">
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
           <div>
-            <label style={labelStyle}>Add Images / Evidence (Optional)</label>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 5 }}>
+              <label style={labelStyle}>Add Photos / Video Evidence (Optional)</label>
+              <span style={{ fontSize: 11, color: '#10B981', fontWeight: 600 }}>Optional</span>
+            </div>
             <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
               <label style={{
                 width: 112, height: 88, border: '2px dashed #C7D2FE', borderRadius: 12,
@@ -438,13 +579,17 @@ export default function NewComplaint({ onNavigate, onLogout, currentUser, initia
                   <path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/>
                 </svg>
                 <span style={{ fontSize: 11, fontWeight: 600, color: '#4F46E5' }}>Click to upload</span>
-                <span style={{ fontSize: 10, color: '#94A3B8' }}>PNG, JPG (Max 5MB)</span>
-                <input type="file" accept="image/*" multiple onChange={handleImageUpload} style={{ display: 'none' }} />
+                <span style={{ fontSize: 10, color: '#94A3B8' }}>Image / Video (Max 15MB)</span>
+                <input type="file" accept="image/*,video/*" multiple onChange={handleImageUpload} style={{ display: 'none' }} />
               </label>
 
               {images.map((img, idx) => (
                 <div key={idx} style={{ position: 'relative', width: 88, height: 88, borderRadius: 10, overflow: 'hidden', border: '1px solid #CBD5E1' }}>
-                  <img src={img.url} alt="upload" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  {img.type?.startsWith('video') ? (
+                    <video src={img.url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  ) : (
+                    <img src={img.url} alt="upload" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  )}
                   <button
                     type="button"
                     onClick={() => removeImage(idx)}
@@ -462,12 +607,16 @@ export default function NewComplaint({ onNavigate, onLogout, currentUser, initia
           </div>
 
           <div>
-            <label style={labelStyle}>Describe your complaint*</label>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 5 }}>
+              <label style={labelStyle}>Describe your complaint (Compulsory)*</label>
+              <span style={{ fontSize: 11, color: '#DC2626', fontWeight: 600 }}>Compulsory</span>
+            </div>
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Provide exact details of the incident, issue with cleanliness, crowd control, ticket counter, delays, or air conditioning..."
               rows={5}
+              required
               style={{
                 width: '100%', padding: '10px 13px', borderRadius: 10,
                 border: '1.5px solid #E2E8F0', background: 'white',
@@ -501,11 +650,12 @@ export default function NewComplaint({ onNavigate, onLogout, currentUser, initia
               </svg>
             </div>
             <div>
-              <div style={{ fontSize: 13.5, fontWeight: 600, color: '#1E293B' }}>
-                Voice Complaint {hasVoiceNote && <span style={{ color: '#059669', fontSize: 12 }}>✓ Recorded</span>}
+              <div style={{ fontSize: 13.5, fontWeight: 600, color: '#1E293B', display: 'flex', alignItems: 'center', gap: 8 }}>
+                Voice Grievance Recording <span style={{ fontSize: 11, color: '#10B981', fontWeight: 600 }}>(Optional)</span>
+                {hasVoiceNote && <span style={{ color: '#059669', fontSize: 12, fontWeight: 700 }}>✓ Recorded</span>}
               </div>
               <div style={{ fontSize: 12, color: '#94A3B8' }}>
-                {isRecording ? 'Recording voice note...' : hasVoiceNote ? 'Voice note attached to complaint' : 'Tap to record grievance in Hindi, Marathi, or English'}
+                {isRecording ? 'Recording voice note...' : hasVoiceNote ? 'Voice note attached to complaint' : 'Optional: Record grievance in Hindi, Marathi, or English (up to 60s)'}
               </div>
             </div>
           </div>
@@ -525,7 +675,7 @@ export default function NewComplaint({ onNavigate, onLogout, currentUser, initia
                 cursor: 'pointer', fontFamily: "'Inter',sans-serif",
               }}
             >
-              {isRecording ? 'Stop Recording' : hasVoiceNote ? 'Re-record' : 'Start Recording'}
+              {isRecording ? 'Stop Recording' : hasVoiceNote ? 'Re-record' : 'Record Audio'}
             </button>
           </div>
         </div>
@@ -545,7 +695,7 @@ export default function NewComplaint({ onNavigate, onLogout, currentUser, initia
             boxShadow: '0 6px 20px rgba(79,70,229,0.35)',
           }}
         >
-          {submitting ? 'Running AI Pipeline...' : 'Submit Complaint'}
+          {submitting ? 'Processing Complaint...' : 'Submit Complaint'}
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
             <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
           </svg>

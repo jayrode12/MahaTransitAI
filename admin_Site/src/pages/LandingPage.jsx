@@ -21,7 +21,6 @@ export default function LandingPage({ navigate }) {
           </div>
           <div>
             <span style={{ fontWeight: 800, color: '#1a1a2e', fontSize: 16 }}>MahaTransit</span>
-            <span style={{ fontWeight: 800, color: '#4F46E5', fontSize: 16 }}> AI</span>
           </div>
         </div>
         <button
@@ -56,7 +55,7 @@ export default function LandingPage({ navigate }) {
             borderRadius: 20, padding: '5px 14px', marginBottom: 28,
           }}>
             <span style={{ width: 7, height: 7, background: '#4ade80', borderRadius: '50%', display: 'inline-block' }} />
-            <span style={{ color: '#4338ca', fontSize: 13, fontWeight: 600 }}>AI-Powered · Mumbai Transit</span>
+            <span style={{ color: '#4338ca', fontSize: 13, fontWeight: 600 }}>Automated · Mumbai Transit</span>
           </div>
 
           <h1 style={{ color: '#0f0c29', fontSize: 50, fontWeight: 800, lineHeight: 1.12, margin: '0 0 22px', letterSpacing: -1 }}>
@@ -65,7 +64,7 @@ export default function LandingPage({ navigate }) {
             Mumbai Transit
           </h1>
           <p style={{ color: '#64748b', fontSize: 17, lineHeight: 1.75, maxWidth: 500, margin: '0 0 38px' }}>
-            One unified platform for Metro, BEST Buses, and Local Trains. AI automatically classifies, prioritizes, and routes every complaint to the right authority.
+            One unified platform for Metro, BEST Buses, and Local Trains. The system automatically classifies, prioritizes, and routes every complaint to the right authority.
           </p>
           <button
             onClick={() => navigate('login')}
@@ -128,23 +127,23 @@ export default function LandingPage({ navigate }) {
         </div>
       </section>
 
-      {/* ── AI Features ── */}
+      {/* ── Automated Features ── */}
       <section style={{ padding: '72px 56px', background: '#fafbff' }}>
         <div style={{ marginBottom: 48 }}>
-          <p style={{ color: '#4F46E5', fontWeight: 700, fontSize: 12, textTransform: 'uppercase', letterSpacing: 1.4, margin: '0 0 10px' }}>AI-Powered</p>
+          <p style={{ color: '#4F46E5', fontWeight: 700, fontSize: 12, textTransform: 'uppercase', letterSpacing: 1.4, margin: '0 0 10px' }}>Smart Processing</p>
           <h2 style={{ color: '#0f0c29', fontSize: 30, fontWeight: 800, margin: '0 0 10px' }}>Intelligent Complaint Processing</h2>
-          <p style={{ color: '#64748b', fontSize: 15, margin: 0 }}>Classified, prioritized, and routed before a human reads it</p>
+          <p style={{ color: '#64748b', fontSize: 15, margin: 0 }}>Classified, prioritized, and routed before an officer reviews it</p>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 18, maxWidth: 900 }}>
           {[
-            { icon: '🧠', title: 'Auto Classification',  color: '#4F46E5',
-              desc: 'DistilBERT reads complaint text and assigns a category — Electrical, Cleanliness, Infrastructure, Safety — instantly.' },
-            { icon: '📸', title: 'Image Detection',       color: '#0891b2',
-              desc: 'YOLOv8 detects broken seats, garbage, water leakage, or damaged infrastructure from uploaded photos.' },
-            { icon: '⚡', title: 'Priority Prediction',   color: '#d97706',
-              desc: 'ML model rates every complaint High / Medium / Low based on safety risk, duplicate count, and category weight.' },
+            { icon: '📋', title: 'Auto Classification',  color: '#4F46E5',
+              desc: 'Intelligent language parsing reads complaint text and assigns a category — Electrical, Cleanliness, Infrastructure, Safety — instantly.' },
+            { icon: '📸', title: 'Image Inspection',       color: '#0891b2',
+              desc: 'Automated vision inspects broken seats, garbage, water leakage, or damaged infrastructure from uploaded photos.' },
+            { icon: '⚡', title: 'Priority Scoring',   color: '#d97706',
+              desc: 'Multi-factor triage rates every complaint High / Medium / Low based on safety risk, duplicate count, and category weight.' },
             { icon: '🔍', title: 'Duplicate Detection',   color: '#7c3aed',
-              desc: 'Sentence Transformers merge 100 "Dadar Platform Dirty" reports into one high-impact issue automatically.' },
+              desc: 'Similarity matching merges repeat station or coach reports into one high-impact issue automatically.' },
           ].map(({ icon, title, color, desc }) => (
             <div key={title} style={{
               background: 'white', borderRadius: 14, padding: '22px 24px',
@@ -204,8 +203,9 @@ export default function LandingPage({ navigate }) {
               <path d="M3 17l2-2 2 2 2-2 2 2 2-2 2 2 2-2 2 2" stroke="white" strokeWidth="1.8" strokeLinecap="round"/>
             </svg>
           </div>
-          <span style={{ color: '#94a3b8', fontSize: 13 }}>© 2024 MahaTransit AI. All rights reserved.</span>
+          <span style={{ color: '#94a3b8', fontSize: 13 }}>© 2026 MahaTransit · Smart Complaint Management System. All rights reserved.</span>
         </div>
+
         <div style={{ display: 'flex', gap: 28 }}>
           {['Privacy', 'Terms', 'Contact'].map(l => (
             <span key={l} style={{ color: '#94a3b8', fontSize: 13, cursor: 'pointer', transition: 'color 0.15s' }}

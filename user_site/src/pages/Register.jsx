@@ -13,7 +13,9 @@ export default function Register({ onNavigate, onLogin }) {
   async function handleSubmit(e) {
     e.preventDefault()
     if (form.password !== form.confirm) {
-      setError('Passwords do not match.')
+      const msg = 'Passwords do not match.'
+      setError(msg)
+      alert(`⚠️ Validation: ${msg}`)
       return
     }
     setLoading(true)
@@ -29,7 +31,9 @@ export default function Register({ onNavigate, onLogin }) {
       if (onLogin) onLogin(user)
       else onNavigate('dashboard')
     } catch (err) {
-      setError(err.message || 'Registration failed. Please try again.')
+      const msg = err.message || 'Registration failed. Please try again.'
+      setError(msg)
+      alert(`⚠️ Registration Failed: ${msg}`)
     } finally {
       setLoading(false)
     }
@@ -61,8 +65,8 @@ export default function Register({ onNavigate, onLogin }) {
               <path d="M3 17l2-2 2 2 2-2 2 2 2-2 2 2 2-2 2 2" stroke="white" strokeWidth="1.8" strokeLinecap="round"/>
             </svg>
           </div>
-          <h1 style={{ fontFamily: "'Outfit',sans-serif", fontWeight: 800, fontSize: 24, color: 'white', marginBottom: 6 }}>MahaTransit AI</h1>
-          <p style={{ color: 'rgba(255,255,255,0.65)', fontSize: 13 }}>Citizen Grievance Portal</p>
+          <h1 style={{ fontFamily: "'Outfit',sans-serif", fontWeight: 800, fontSize: 24, color: 'white', marginBottom: 6 }}>MahaTransit</h1>
+          <p style={{ color: 'rgba(255,255,255,0.85)', fontSize: 13, fontWeight: 500 }}>Smart Complaint Management System</p>
         </div>
 
         <div style={{ width: '100%', maxWidth: 300, borderRadius: 14, overflow: 'hidden', zIndex: 1 }}>
@@ -71,7 +75,7 @@ export default function Register({ onNavigate, onLogin }) {
 
         <div style={{ marginTop: 28, zIndex: 1 }}>
           {[
-            ['✓', 'AI-powered complaint categorization'],
+            ['✓', 'Smart automated complaint categorization'],
             ['✓', 'Real-time status tracking across Metro, BEST & Locals'],
             ['✓', 'Direct forwarding to transport authorities'],
           ].map(([icon, text]) => (
@@ -98,8 +102,9 @@ export default function Register({ onNavigate, onLogin }) {
             <h2 style={{ fontFamily: "'Outfit',sans-serif", fontWeight: 800, fontSize: 26, color: '#1E293B', marginBottom: 6 }}>
               Create an account
             </h2>
-            <p style={{ color: '#64748B', fontSize: 13.5 }}>Join MahaTransit AI to file and track your complaints</p>
+            <p style={{ color: '#64748B', fontSize: 13.5 }}>Join MahaTransit to file and track your complaints</p>
           </div>
+
 
           {error && (
             <div style={{

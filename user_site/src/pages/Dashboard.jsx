@@ -11,25 +11,25 @@ export default function Dashboard({ onNavigate, onViewComplaint, onLogout, curre
     async function loadData() {
       try {
         setLoading(true)
-        const params = { limit: 50 }
-        if (currentUser?.user_id) {
-          // If citizen user id available
-          params.citizen_id = currentUser.user_id
+        const citizenId = currentUser?.user_id || currentUser?.id
+        if (!citizenId) {
+          setComplaintsList([])
+          setLoading(false)
+          return
         }
-        let res = await api.complaints.list(params)
-        // If citizen has no personal complaints yet, fetch all recent to display active system items
-        if (!res.items || res.items.length === 0) {
-          res = await api.complaints.list({ limit: 20 })
-        }
-        setComplaintsList(res.items || [])
+        const params = { limit: 50, citizen_id: citizenId }
+        const res = await api.complaints.list(params)
+        setComplaintsList(res?.items || [])
       } catch (err) {
         console.error('Failed to load dashboard complaints', err)
+        setComplaintsList([])
       } finally {
         setLoading(false)
       }
     }
     loadData()
   }, [currentUser])
+
 
   const ongoing = complaintsList.filter(
     (c) => c.status === 'Submitted' || c.status === 'Assigned' || c.status === 'Under Investigation' || c.status === 'In Progress'
@@ -142,11 +142,18 @@ export default function Dashboard({ onNavigate, onViewComplaint, onLogout, curre
               }}
             >
               <div style={{ display: 'flex', gap: 12, marginBottom: 12 }}>
-                <img
-                  src={c.image}
-                  alt={c.title}
-                  style={{ width: 78, height: 60, borderRadius: 10, objectFit: 'cover', flexShrink: 0, background: '#E0E7FF' }}
-                />
+                {c.image ? (
+                  <img
+                    src={c.image}
+                    alt={c.title}
+                    style={{ width: 78, height: 60, borderRadius: 10, objectFit: 'cover', flexShrink: 0, background: '#E0E7FF' }}
+                  />
+                ) : (
+                  <div style={{ width: 78, height: 60, borderRadius: 10, background: 'linear-gradient(135deg, #EEF2FF 0%, #E0E7FF 100%)', border: '1px solid #C7D2FE', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flexShrink: 0, gap: 3 }}>
+                    <span style={{ fontSize: 20 }}>{c.transport === 'Bus' ? '🚌' : c.transport === 'Railway' ? '🚆' : '🚇'}</span>
+                    <span style={{ fontSize: 9.5, fontWeight: 700, color: '#4F46E5', textTransform: 'uppercase' }}>{c.transport}</span>
+                  </div>
+                )}
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <span style={{
                     display: 'inline-flex', alignItems: 'center', gap: 5,

@@ -18,20 +18,17 @@ export default function Login({ onNavigate, onLogin }) {
       if (onLogin) onLogin(user)
       else onNavigate('dashboard')
     } catch (err) {
-      setError(err.message || 'Login failed. Please check your credentials.')
+      const msg = err.message || 'Login failed. Please check your credentials.'
+      setError(msg)
+      alert(`⚠️ Login Failed: ${msg}`)
     } finally {
       setLoading(false)
     }
   }
 
-  function handleDemoUser(demoEmail) {
-    setEmail(demoEmail)
-    setPassword('Mahatransit@123')
-    setError(null)
-  }
-
   return (
     <div style={{ minHeight: '100vh', display: 'flex', fontFamily: "'Inter', sans-serif" }}>
+
       {/* Left panel */}
       <div style={{
         width: '45%', minHeight: '100vh',
@@ -57,10 +54,10 @@ export default function Login({ onNavigate, onLogin }) {
               <path d="M3 17l2-2 2 2 2-2 2 2 2-2 2 2 2-2 2 2" stroke="white" strokeWidth="1.8" strokeLinecap="round"/>
             </svg>
           </div>
-          <h1 style={{ fontFamily: "'Outfit',sans-serif", fontWeight: 800, fontSize: 26, color: 'white', marginBottom: 8 }}>
-            MahaTransit AI
+          <h1 style={{ fontFamily: "'Outfit',sans-serif", fontWeight: 800, fontSize: 24, color: 'white', marginBottom: 8, textAlign: 'center', lineHeight: 1.3 }}>
+            MahaTransit
           </h1>
-          <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 14 }}>Citizen Complaint Portal</p>
+          <p style={{ color: 'rgba(255,255,255,0.85)', fontSize: 13, fontWeight: 500 }}>Smart Complaint Management System</p>
         </div>
 
         {/* Cityscape illustration */}
@@ -76,7 +73,7 @@ export default function Login({ onNavigate, onLogin }) {
 
         {/* Floating stats */}
         <div style={{ display: 'flex', gap: 16, marginTop: 32, zIndex: 1 }}>
-          {[['60+', 'Active Grievances'], ['3', 'Transport Networks'], ['AI', 'Smart Processing']].map(([n, l]) => (
+          {[['60+', 'Active Grievances'], ['3', 'Transport Networks'], ['24/7', 'Smart Processing']].map(([n, l]) => (
             <div key={l} style={{
               background: 'rgba(255,255,255,0.12)',
               border: '1px solid rgba(255,255,255,0.2)',
@@ -114,30 +111,8 @@ export default function Login({ onNavigate, onLogin }) {
             </div>
           )}
 
-          {/* Quick Login Helpers */}
-          <div style={{ marginBottom: 20, padding: '12px', background: '#EEF2FF', borderRadius: 10, border: '1px solid #C7D2FE' }}>
-            <div style={{ fontSize: 11.5, fontWeight: 700, color: '#4F46E5', textTransform: 'uppercase', marginBottom: 8 }}>
-              Quick Fill Demo Citizen
-            </div>
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-              <button
-                type="button"
-                onClick={() => handleDemoUser('aarav_716eb3@gmail.com')}
-                style={{ padding: '6px 10px', borderRadius: 6, border: '1px solid #C7D2FE', background: 'white', color: '#3730A3', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
-              >
-                👤 Aarav Patil
-              </button>
-              <button
-                type="button"
-                onClick={() => handleDemoUser('priya.nair@gmail.com')}
-                style={{ padding: '6px 10px', borderRadius: 6, border: '1px solid #C7D2FE', background: 'white', color: '#3730A3', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
-              >
-                👤 Priya Nair
-              </button>
-            </div>
-          </div>
-
           <form onSubmit={handleSubmit}>
+
             <div style={{ marginBottom: 18 }}>
               <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 6 }}>
                 Email Address

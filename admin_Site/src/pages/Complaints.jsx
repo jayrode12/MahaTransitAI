@@ -53,7 +53,7 @@ export default function Complaints({ navigate, onLogout, adminUser }) {
   const [search, setSearch] = useState('')
   const [fromDate, setFromDate] = useState('')
   const [toDate, setToDate] = useState('')
-  const [sortBy, setSortBy] = useState('priority_date')
+  const [sortBy, setSortBy] = useState('date_priority')
   const [page, setPage] = useState(1)
 
   const lineOptions = modeKey === 'bus'
@@ -123,15 +123,23 @@ export default function Complaints({ navigate, onLogout, adminUser }) {
     return true
   })
 
-  // Sort by Priority (Critical first) and Date (Newest first)
+  // Sort: Date wise first (Newest), then Assigned Priority (Critical -> High -> Medium -> Low)
   rows.sort((a, b) => {
-    if (sortBy === 'priority_date') {
-      const pa = priorityOrder[a.priority] || 5
-      const pb = priorityOrder[b.priority] || 5
-      if (pa !== pb) return pa - pb
-    }
     const da = a.created_at ? new Date(a.created_at).getTime() : 0
     const db = b.created_at ? new Date(b.created_at).getTime() : 0
+    const pa = priorityOrder[a.priority] || 5
+    const pb = priorityOrder[b.priority] || 5
+
+    if (sortBy === 'date_priority' || sortBy === 'date' || !sortBy) {
+      if (db !== da) return db - da
+      return pa - pb
+    } else if (sortBy === 'priority_date') {
+      if (pa !== pb) return pa - pb
+      return db - da
+    } else if (sortBy === 'date_asc') {
+      if (da !== db) return da - db
+      return pa - pb
+    }
     return db - da
   })
 
@@ -176,7 +184,7 @@ export default function Complaints({ navigate, onLogout, adminUser }) {
                 </span>
               </div>
               <p style={{ color: '#6b7280', margin: '3px 0 0', fontSize: 13 }}>
-                Ordered by AI Priority (Critical & High first) and latest submission date.
+                Ordered by Priority (Critical & High first) and latest submission date.
               </p>
             </div>
             <div style={{ display: 'flex', gap: 8 }}>
@@ -240,8 +248,9 @@ export default function Complaints({ navigate, onLogout, adminUser }) {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
               <span style={{ fontSize: 11, fontWeight: 600, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: 0.5 }}>Order By</span>
               <select style={SEL} value={sortBy} onChange={e => { setSortBy(e.target.value); setPage(1) }}>
+                <option value="date_priority">Date Wise, then Assigned Priority</option>
                 <option value="priority_date">Priority First, then Date</option>
-                <option value="date">Latest Date First</option>
+                <option value="date_asc">Oldest Date First</option>
               </select>
             </div>
 
@@ -253,7 +262,7 @@ export default function Complaints({ navigate, onLogout, adminUser }) {
             </div>
 
             <button
-              onClick={() => { setPriFilter('All Priorities'); setStaFilter('All Statuses'); setLineFilter('All'); setSearch(''); setFromDate(''); setToDate(''); setSortBy('priority_date'); setTab('all'); setPage(1) }}
+              onClick={() => { setPriFilter('All Priorities'); setStaFilter('All Statuses'); setLineFilter('All'); setSearch(''); setFromDate(''); setToDate(''); setSortBy('date_priority'); setTab('all'); setPage(1) }}
               style={{ padding: '7px 14px', borderRadius: 7, border: '1.5px solid #e8eef6', background: 'white', color: '#4f46e5', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}
             >
               Reset Filters
@@ -283,10 +292,11 @@ export default function Complaints({ navigate, onLogout, adminUser }) {
 
             {/* Column headers */}
             <div style={{ display: 'grid', gridTemplateColumns: '260px 1fr 130px 140px 120px 52px', padding: '10px 20px', borderBottom: '1px solid #f1f5f9', background: '#fafbfd' }}>
-              {['COMPLAINT TICKET', 'DESCRIPTION & DETAILS', 'DATE & TIME', 'AI PRIORITY', 'STATUS', 'ACTION'].map((h, i) => (
+              {['COMPLAINT TICKET', 'DESCRIPTION & DETAILS', 'DATE & TIME', 'PRIORITY', 'STATUS', 'ACTION'].map((h, i) => (
                 <div key={i} style={{ fontSize: 11, fontWeight: 700, color: '#9ca3af', letterSpacing: 0.7 }}>{h}</div>
               ))}
             </div>
+
 
             {/* Rows */}
             {loading ? (
@@ -306,7 +316,13 @@ export default function Complaints({ navigate, onLogout, adminUser }) {
                 >
                   {/* Complaint ID */}
                   <div style={{ display: 'flex', alignItems: 'center', gap: 11 }}>
-                    <img src={THUMBS[c.t || 0]} alt="" style={{ width: 44, height: 44, borderRadius: 8, objectFit: 'cover', flexShrink: 0 }} />
+                    {c.image ? (
+                      <img src={c.image} alt="" style={{ width: 44, height: 44, borderRadius: 8, objectFit: 'cover', flexShrink: 0 }} />
+                    ) : (
+                      <div style={{ width: 44, height: 44, borderRadius: 8, background: '#EEF2FF', border: '1px solid #C7D2FE', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0 }}>
+                        {c.transport === 'Bus' ? '🚌' : c.transport === 'Railway' ? '🚆' : '🚇'}
+                      </div>
+                    )}
                     <div>
                       <div style={{ fontSize: 12, fontWeight: 700, color: '#1f2937', fontFamily: 'monospace' }}>
                         {c.ticket_number || c.id}

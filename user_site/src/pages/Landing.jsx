@@ -31,8 +31,8 @@ export default function Landing({ onNavigate, isLoggedIn, currentUser }) {
             </svg>
           </div>
           <div>
-            <div style={{ fontFamily: "'Outfit', sans-serif", fontWeight: 700, fontSize: 16, color: '#1E293B' }}>MahaTransit AI</div>
-            <div style={{ fontSize: 11, color: '#94A3B8', marginTop: 1 }}>Complaint Management System</div>
+            <div style={{ fontFamily: "'Outfit', sans-serif", fontWeight: 700, fontSize: 16, color: '#1E293B' }}>MahaTransit</div>
+            <div style={{ fontSize: 11, color: '#94A3B8', marginTop: 1 }}>Smart Complaint Management System</div>
           </div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -62,15 +62,15 @@ export default function Landing({ onNavigate, isLoggedIn, currentUser }) {
       <section style={{ background: 'linear-gradient(160deg, #EEF2FF 0%, #F0F4FF 40%, #E8EEFF 100%)', padding: '80px 40px 72px', textAlign: 'center' }}>
         <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '5px 14px', borderRadius: 20, background: 'white', border: '1px solid #C7D2FE', color: '#4F46E5', fontSize: 12, fontWeight: 600, marginBottom: 28 }}>
           <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#4F46E5', display: 'inline-block' }} />
-          AI-Powered · Mumbai Public Transport
+          Smart System · Mumbai Public Transport
         </div>
         <h1 style={{ fontFamily: "'Outfit', sans-serif", fontSize: 52, fontWeight: 800, color: '#1E293B', lineHeight: 1.15, margin: '0 auto 20px', maxWidth: 680 }}>
-          Mumbai's Smartest<br />
+          Mumbai's Smart<br />
           <span style={{ color: '#4F46E5' }}>Complaint Platform</span>
         </h1>
         <p style={{ fontSize: 17, color: '#64748B', maxWidth: 520, margin: '0 auto 36px', lineHeight: 1.65 }}>
           Report Metro, BEST Bus, and Mumbai Local train issues in seconds.
-          AI automatically categorizes, prioritizes and routes your complaint to the right authority.
+          Automatically categorizes, prioritizes and routes your complaint to the right authority.
         </p>
         <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
           <button onClick={() => onNavigate('new-complaint')} style={{ padding: '13px 28px', borderRadius: 10, border: 'none', background: '#4F46E5', color: 'white', fontWeight: 700, fontSize: 14.5, cursor: 'pointer', fontFamily: "'Inter', sans-serif", boxShadow: '0 8px 28px rgba(79,70,229,0.35)', display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -129,15 +129,15 @@ export default function Landing({ onNavigate, isLoggedIn, currentUser }) {
         </div>
       </section>
 
-      {/* AI features */}
+      {/* Smart Features */}
       <section style={{ padding: '64px 40px', background: '#F8FAFF', borderTop: '1px solid #EEF2FF' }}>
         <div style={{ maxWidth: 860, margin: '0 auto' }}>
           <h2 style={{ fontFamily: "'Outfit',sans-serif", fontSize: 28, fontWeight: 800, color: '#1E293B', textAlign: 'center', marginBottom: 8 }}>Intelligent by Design</h2>
-          <p style={{ color: '#64748B', fontSize: 14.5, textAlign: 'center', marginBottom: 36 }}>Every complaint is processed by AI before it reaches the management team.</p>
+          <p style={{ color: '#64748B', fontSize: 14.5, textAlign: 'center', marginBottom: 36 }}>Every complaint is processed and triaged before it reaches the management team.</p>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 14 }}>
             {[
               { icon: '🔍', label: 'Auto Classification', desc: 'Complaint type automatically detected from your text description.' },
-              { icon: '📸', label: 'Image Analysis', desc: 'Vision model detects visible transport issues from uploaded photos.' },
+              { icon: '📸', label: 'Image Verification', desc: 'Automated inspection detects visible transport issues from uploaded photos.' },
               { icon: '⚡', label: 'Priority Scoring', desc: 'Urgency level predicted and assigned automatically based on severity.' },
               { icon: '🔁', label: 'Duplicate Detection', desc: 'Similar complaints are merged so management sees real impact count.' },
             ].map((f) => (
@@ -153,11 +153,12 @@ export default function Landing({ onNavigate, isLoggedIn, currentUser }) {
 
       {/* Footer */}
       <footer style={{ padding: '24px 40px', background: '#1E1B4B', textAlign: 'center' }}>
-        <p style={{ color: 'rgba(255,255,255,0.45)', fontSize: 13, margin: 0 }}>
-          © 2026 MahaTransit AI · Unified Complaint Management Platform · Mumbai, Maharashtra
+        <p style={{ color: 'rgba(255,255,255,0.75)', fontSize: 13, margin: 0 }}>
+          © 2026 MahaTransit · Smart Complaint Management System · Mumbai, Maharashtra
         </p>
       </footer>
 
     </div>
   )
 }
+

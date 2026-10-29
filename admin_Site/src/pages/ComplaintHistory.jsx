@@ -33,6 +33,9 @@ export default function ComplaintHistory({ navigate, onLogout, adminUser }) {
   const [tab, setTab] = useState('all')
   const [search, setSearch] = useState('')
   const [priFilter, setPriFilter] = useState('All Priorities')
+  const [fromDate, setFromDate] = useState('')
+  const [toDate, setToDate] = useState('')
+  const [sortBy, setSortBy] = useState('date_priority')
   const [page, setPage] = useState(1)
 
   useEffect(() => {
@@ -42,6 +45,9 @@ export default function ComplaintHistory({ navigate, onLogout, adminUser }) {
         const transitModeParam = modeKey === 'all' ? undefined : modeKey
         const res = await api.complaints.list({
           transit_mode: transitModeParam,
+          from_date: fromDate || undefined,
+          to_date: toDate || undefined,
+          sort_by: sortBy,
           limit: 100,
         })
         if (res && res.items) {
@@ -54,7 +60,9 @@ export default function ComplaintHistory({ navigate, onLogout, adminUser }) {
       }
     }
     loadHistory()
-  }, [modeKey])
+  }, [modeKey, fromDate, toDate, sortBy])
+
+  const priorityOrder = { Critical: 1, High: 2, Medium: 3, Low: 4 }
 
   const filtered = complaintList.filter(c => {
     if (tab === 'critical' && c.priority !== 'Critical') return false
@@ -63,6 +71,15 @@ export default function ComplaintHistory({ navigate, onLogout, adminUser }) {
     if (tab === 'low' && c.priority !== 'Low') return false
 
     if (priFilter !== 'All Priorities' && c.priority !== priFilter) return false
+
+    if (fromDate && c.created_at) {
+      if (new Date(c.created_at) < new Date(fromDate)) return false
+    }
+    if (toDate && c.created_at) {
+      const endD = new Date(toDate)
+      endD.setHours(23, 59, 59, 999)
+      if (new Date(c.created_at) > endD) return false
+    }
 
     if (search.trim()) {
       const q = search.toLowerCase()
@@ -75,6 +92,26 @@ export default function ComplaintHistory({ navigate, onLogout, adminUser }) {
     }
 
     return true
+  })
+
+  // Sort: Date wise first (Newest), then Assigned Priority (Critical -> High -> Medium -> Low)
+  filtered.sort((a, b) => {
+    const da = a.created_at ? new Date(a.created_at).getTime() : 0
+    const db = b.created_at ? new Date(b.created_at).getTime() : 0
+    const pa = priorityOrder[a.priority] || 5
+    const pb = priorityOrder[b.priority] || 5
+
+    if (sortBy === 'date_priority' || sortBy === 'date' || !sortBy) {
+      if (db !== da) return db - da
+      return pa - pb
+    } else if (sortBy === 'priority_date') {
+      if (pa !== pb) return pa - pb
+      return db - da
+    } else if (sortBy === 'date_asc') {
+      if (da !== db) return da - db
+      return pa - pb
+    }
+    return db - da
   })
 
   const PAGE_SIZE = 8
@@ -119,13 +156,39 @@ export default function ComplaintHistory({ navigate, onLogout, adminUser }) {
               />
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-              <span style={{ fontSize: 11, fontWeight: 600, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: 0.5 }}>AI Priority</span>
+              <span style={{ fontSize: 11, fontWeight: 600, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: 0.5 }}>From Date</span>
+              <input
+                type="date"
+                value={fromDate}
+                onChange={e => { setFromDate(e.target.value); setPage(1) }}
+                style={{ border: '1.5px solid #e8eef6', borderRadius: 7, padding: '6px 10px', fontSize: 13, outline: 'none', color: '#374151' }}
+              />
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              <span style={{ fontSize: 11, fontWeight: 600, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: 0.5 }}>To Date</span>
+              <input
+                type="date"
+                value={toDate}
+                onChange={e => { setToDate(e.target.value); setPage(1) }}
+                style={{ border: '1.5px solid #e8eef6', borderRadius: 7, padding: '6px 10px', fontSize: 13, outline: 'none', color: '#374151' }}
+              />
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              <span style={{ fontSize: 11, fontWeight: 600, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: 0.5 }}>Order By</span>
+              <select style={SEL} value={sortBy} onChange={e => { setSortBy(e.target.value); setPage(1) }}>
+                <option value="date_priority">Date Wise, then Assigned Priority</option>
+                <option value="priority_date">Priority First, then Date</option>
+                <option value="date_asc">Oldest Date First</option>
+              </select>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              <span style={{ fontSize: 11, fontWeight: 600, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: 0.5 }}>Priority</span>
               <select style={SEL} value={priFilter} onChange={e => { setPriFilter(e.target.value); setPage(1) }}>
                 {['All Priorities', 'Critical', 'High', 'Medium', 'Low'].map(o => <option key={o}>{o}</option>)}
               </select>
             </div>
             <button
-              onClick={() => { setPriFilter('All Priorities'); setSearch(''); setTab('all'); setPage(1) }}
+              onClick={() => { setPriFilter('All Priorities'); setSearch(''); setFromDate(''); setToDate(''); setSortBy('date_priority'); setTab('all'); setPage(1) }}
               style={{ marginTop: 18, padding: '7px 14px', borderRadius: 7, border: '1.5px solid #e8eef6', background: 'white', color: '#4f46e5', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}
             >
               Reset
@@ -151,7 +214,7 @@ export default function ComplaintHistory({ navigate, onLogout, adminUser }) {
           {/* Table */}
           <div style={{ background: 'white', border: '1px solid #e8eef6', borderTop: 'none', borderRadius: '0 0 12px 12px', overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,0.04)' }}>
             <div style={{ display: 'grid', gridTemplateColumns: '260px 1fr 130px 140px 110px 52px', padding: '10px 20px', borderBottom: '1px solid #f1f5f9', background: '#fafbfd' }}>
-              {['COMPLAINT TICKET', 'DESCRIPTION', 'DATE & TIME', 'AI PRIORITY', 'STATUS', 'ACTION'].map((h, i) => (
+              {['COMPLAINT TICKET', 'DESCRIPTION', 'DATE & TIME', 'PRIORITY', 'STATUS', 'ACTION'].map((h, i) => (
                 <div key={i} style={{ fontSize: 11, fontWeight: 700, color: '#9ca3af', letterSpacing: 0.7 }}>{h}</div>
               ))}
             </div>
@@ -171,7 +234,13 @@ export default function ComplaintHistory({ navigate, onLogout, adminUser }) {
                   onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: 11 }}>
-                    <img src={THUMBS[c.t || 0]} alt="" style={{ width: 44, height: 44, borderRadius: 8, objectFit: 'cover' }} />
+                    {c.image ? (
+                      <img src={c.image} alt="" style={{ width: 44, height: 44, borderRadius: 8, objectFit: 'cover' }} />
+                    ) : (
+                      <div style={{ width: 44, height: 44, borderRadius: 8, background: '#EEF2FF', border: '1px solid #C7D2FE', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0 }}>
+                        {c.transport === 'Bus' ? '🚌' : c.transport === 'Railway' ? '🚆' : '🚇'}
+                      </div>
+                    )}
                     <div>
                       <div style={{ fontSize: 12, fontWeight: 700, color: '#1f2937', fontFamily: 'monospace' }}>{c.ticket_number || c.id}</div>
                       <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 3 }}>{c.transport} · {c.line}</div>

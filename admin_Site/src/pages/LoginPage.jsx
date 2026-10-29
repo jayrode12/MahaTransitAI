@@ -3,8 +3,8 @@ import MumbaiCityscape from '../components/MumbaiCityscape.jsx'
 import api from '../services/api.js'
 
 export default function LoginPage({ navigate, onLogin }) {
-  const [username, setUsername] = useState('metro')
-  const [password, setPassword] = useState('password123')
+  const [username, setUsername] = useState('')
+  const [password, setPassword] = useState('')
   const [showPw, setShowPw] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -14,7 +14,9 @@ export default function LoginPage({ navigate, onLogin }) {
     const pwToLogin = customPassword || password
 
     if (!userToLogin.trim()) {
-      setError('Please enter username or email.')
+      const msg = 'Please enter username or email.'
+      setError(msg)
+      alert(`⚠️ Authentication Notice: ${msg}`)
       return
     }
 
@@ -29,7 +31,9 @@ export default function LoginPage({ navigate, onLogin }) {
       if (onLogin) onLogin(data)
     } catch (err) {
       console.error('Login error:', err)
-      setError(err.message || 'Login failed. Please verify credentials.')
+      const msg = err.message || 'Login failed. Please verify credentials.'
+      setError(msg)
+      alert(`⚠️ Official Login Failed: ${msg}`)
     } finally {
       setLoading(false)
     }
@@ -38,12 +42,6 @@ export default function LoginPage({ navigate, onLogin }) {
   const handleSubmit = (e) => {
     e.preventDefault()
     handleLoginSubmit()
-  }
-
-  const quickLogin = (handle) => {
-    setUsername(handle)
-    setPassword('password123')
-    handleLoginSubmit(handle, 'password123')
   }
 
   return (
@@ -84,11 +82,11 @@ export default function LoginPage({ navigate, onLogin }) {
           </svg>
         </div>
 
-        <h1 style={{ color: 'white', fontWeight: 800, fontSize: 28, margin: '0 0 8px', textAlign: 'center' }}>
-          MahaTransit AI
+        <h1 style={{ color: 'white', fontWeight: 800, fontSize: 26, margin: '0 0 8px', textAlign: 'center', lineHeight: 1.3 }}>
+          MahaTransit
         </h1>
-        <p style={{ color: 'rgba(255,255,255,0.75)', fontSize: 15, margin: '0 0 36px', textAlign: 'center' }}>
-          Transit Authority Administrative Portal
+        <p style={{ color: 'rgba(255,255,255,0.85)', fontSize: 13, fontWeight: 500, margin: '0 0 36px', textAlign: 'center' }}>
+          Smart Complaint Management System
         </p>
 
         {/* Illustration card */}
@@ -118,62 +116,6 @@ export default function LoginPage({ navigate, onLogin }) {
             Sign in with your transit department credentials (handle or email).
           </p>
 
-          {/* Quick Demo Access Bar */}
-          <div style={{
-            background: '#EEF2FF', border: '1px solid #C7D2FE',
-            borderRadius: 12, padding: '14px', marginBottom: 24,
-          }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: '#4338CA', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5 }}>
-              ⚡ 1-Click Agency Login:
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8 }}>
-              <button
-                type="button"
-                onClick={() => quickLogin('metro')}
-                style={{
-                  padding: '8px 10px', borderRadius: 8, border: '1px solid #CBD5E1',
-                  background: 'white', color: '#1E293B', fontSize: 12.5, fontWeight: 600,
-                  cursor: 'pointer', textAlign: 'left', display: 'flex', alignItems: 'center', gap: 6,
-                }}
-              >
-                <span>🚇</span> <strong>metro</strong> (Metro One)
-              </button>
-              <button
-                type="button"
-                onClick={() => quickLogin('best')}
-                style={{
-                  padding: '8px 10px', borderRadius: 8, border: '1px solid #CBD5E1',
-                  background: 'white', color: '#1E293B', fontSize: 12.5, fontWeight: 600,
-                  cursor: 'pointer', textAlign: 'left', display: 'flex', alignItems: 'center', gap: 6,
-                }}
-              >
-                <span>🚌</span> <strong>best</strong> (BEST Buses)
-              </button>
-              <button
-                type="button"
-                onClick={() => quickLogin('locals')}
-                style={{
-                  padding: '8px 10px', borderRadius: 8, border: '1px solid #CBD5E1',
-                  background: 'white', color: '#1E293B', fontSize: 12.5, fontWeight: 600,
-                  cursor: 'pointer', textAlign: 'left', display: 'flex', alignItems: 'center', gap: 6,
-                }}
-              >
-                <span>🚆</span> <strong>locals</strong> (Suburban Trains)
-              </button>
-              <button
-                type="button"
-                onClick={() => quickLogin('admin')}
-                style={{
-                  padding: '8px 10px', borderRadius: 8, border: '1px solid #CBD5E1',
-                  background: 'white', color: '#1E293B', fontSize: 12.5, fontWeight: 600,
-                  cursor: 'pointer', textAlign: 'left', display: 'flex', alignItems: 'center', gap: 6,
-                }}
-              >
-                <span>🏛️</span> <strong>admin</strong> (Central Admin)
-              </button>
-            </div>
-          </div>
-
           {error && (
             <div style={{
               background: '#fef2f2', border: '1px solid #fecaca',
@@ -183,6 +125,7 @@ export default function LoginPage({ navigate, onLogin }) {
               {error}
             </div>
           )}
+
 
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
             {/* Username / Email */}
